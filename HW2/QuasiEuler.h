@@ -1,4 +1,22 @@
+
+
+#include <cmath>
+
+#include "StructuredGrid.h"
+#include "../Eigen/Dense"
+
 class QuasiEuler{
-public:
-int b;
+
+	public:
+
+		//public functions
+		void S(StructuredGrid &mesh);//return S(x) at mesh points
+			//TODO: write conversion functions and test them, could copy from hw1?
+		void pressureSensor();
+
+
+		//public parameters (the problem parameters)
+		double gamma, inlet_pressure, total_temperature, s_star;
+		double initial_pressure_left, initial_pressure_right, time;
+
 };

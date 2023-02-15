@@ -1,0 +1,8 @@
+#ignore files
+.cproject
+.project
+.settings
+/Eigen
+
+#ignore extensions
+*.out
