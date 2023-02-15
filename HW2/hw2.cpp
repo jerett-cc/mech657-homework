@@ -1,5 +1,5 @@
 
-#include "StructuredGrid.h"
+#include "Geometry.h"
 
 
 //implements a second order finite difference algorithm

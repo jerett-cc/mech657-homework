@@ -2,8 +2,8 @@
 
 #include <cmath>
 
-#include "StructuredGrid.h"
 #include "../Eigen/Dense"
+#include "Geometry.h"
 
 class QuasiEuler{
 

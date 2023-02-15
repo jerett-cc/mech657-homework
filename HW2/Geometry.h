@@ -5,7 +5,7 @@
 #include<iostream>
 
 #include "../Eigen/Dense"
-
+//TODO: include a way to describe the face of a cell once we start doing cell-cenered Finite Volume code
 
 class StructuredGrid{
 
@@ -25,6 +25,7 @@ class StructuredGrid{
 				mesh = tempMesh;
 				assert(std::fabs(mesh(num_cells)-R)<1e-15 && "Mesh should end at the specified stop value.");
 			};
+
 
 	private:
 		double L, R, dx;
