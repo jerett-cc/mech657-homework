@@ -1,5 +1,6 @@
 
 #include "../Eigen/Dense"
+#include "../Eigen/IterativeLinearSolvers"
 
 class SystemConstruction{
 
