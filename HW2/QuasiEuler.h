@@ -10,9 +10,13 @@ class QuasiEuler{
 	public:
 
 		//public functions
-		void S(StructuredGrid &mesh);//return S(x) at mesh points
+		void S(const StructuredGrid &mesh);//return S(x) at mesh points
 			//TODO: write conversion functions and test them, could copy from hw1?
-		void pressureSensor();
+		void calculateLocalInviscidFluxJacobian();//do this for node i
+		void calculateLocalDissipation();
+
+		//helper functions
+		void pressureSensor(const StructuredGrid & mesh);
 
 
 		//public parameters (the problem parameters)
@@ -20,3 +24,8 @@ class QuasiEuler{
 		double initial_pressure_left, initial_pressure_right, time;
 
 };
+
+
+void QuasiEuler::pressureSensor(const StructuredGrid & mesh){
+	//do something
+}

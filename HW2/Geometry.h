@@ -14,20 +14,26 @@ class StructuredGrid{
 		Eigen::VectorXd mesh, temperature, pressure, density, mach, Q;
 
 		StructuredGrid(double start, double stop, int num_cells) :
-			L(start), R(stop), numCell(num_cells)
+			L(start), R(stop), numCell(num_cells), mesh(num_cells+1)
 			{
 				dx = (R - L)/num_cells;
-				Eigen::VectorXd tempMesh(num_cells + 1);
-					for (int j = 0; j < tempMesh.size(); ++j)
+//				Eigen::VectorXd tempMesh(num_cells + 1);
+					for (int j = 0; j < mesh.size(); ++j)
 					{
-						tempMesh(j) = L + dx*j;
+						mesh(j) = L + dx*j;
 					}
-				mesh = tempMesh;
 				assert(std::fabs(mesh(num_cells)-R)<1e-15 && "Mesh should end at the specified stop value.");
+				std::cout << mesh << std::endl;
 			};
+
+		int get_size();
 
 
 	private:
 		double L, R, dx;
 		int numCell;
 };
+
+int StructuredGrid::get_size(){
+	return mesh.size();
+}
