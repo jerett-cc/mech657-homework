@@ -1,18 +1,25 @@
 
 #include "Geometry.h"
+#include "QuasiEuler.h"
 #include <cmath>
 #include <iostream>
+#include "../Eigen/Dense"
+
+/*TODO: wither pad the vectors, or create a conditional in loops that require data
+ * out of bounds for the mesh size.
+ */
 
 
 //implements a second order finite difference algorithm
 int main(){
 
 	//Parameters for all problems
+	int dimension = 1;
 	double Left = 0.;
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_cells = 10;
+	int num_cells = 4;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -35,8 +42,33 @@ int main(){
 	//for the last, we will solve a time dependent problem up from t= [0,6.1ms]
 
 	{
-		StructuredGrid grid_p1(Left, Right, num_cells);
-		//QuasiEuler euler_problem;
+		StructuredGrid grid_p1(Left, Right, num_cells, dimension);
+
+		//set up test Q
+		Eigen::VectorXd test((dimension+2)*(num_cells+1));
+		for (int i=0; i<test.size(); ++i)
+		{
+			test(i) = i;
+		}
+		grid_p1.Q = test;
+		QuasiEuler euler_problem(grid_p1, gamma);
+		//testing, clean up later.
+		Eigen::MatrixXd temp;
+		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
+		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
+
+		Eigen::MatrixXd e_contributions(grid_p1.mesh.size(), 2);
+
+		for (int i=0; i<grid_p1.pressure.size(); ++i)
+				{
+					if (i<=grid_p1.pressure.size()/2) {grid_p1.pressure(i) = 0.1;}
+					else {
+						grid_p1.pressure(i) = 0.;
+					}
+				}
+		euler_problem.pressureSensor(grid_p1, e_contributions);
+
+		std::cout << "Testing pressure sensor " << std::endl <<  e_contributions << std::endl;
 
 		//
 	}

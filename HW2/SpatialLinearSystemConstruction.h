@@ -1,3 +1,6 @@
+#ifndef SpatialLinearSystemCons_H
+#define SpatialLinearSystemCons_H
+
 
 #include "../Eigen/Dense"
 #include "../Eigen/IterativeLinearSolvers"
@@ -31,3 +34,4 @@ class SystemConstructionAndSolution{
 };
 
 
+#endif
