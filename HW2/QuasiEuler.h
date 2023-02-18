@@ -34,7 +34,9 @@ class QuasiEuler{
 
 		//helper functions
 		void pressureSensor(const StructuredGrid &data, Eigen::MatrixXd &e_contributions);
-
+		void updatePressure(StructuredGrid & data);
+		void updateMach(StructuredGrid & data);
+		void updateDensity(StructuredGrid & data);
 
 		//public parameters (the problem parameters)
 		double gamma, inlet_pressure, total_temperature, s_star;
@@ -44,6 +46,7 @@ class QuasiEuler{
 			: local_matrix_size(mesh.problem_dimension + 2), gamma(gamm)
 		{
 		};
+		QuasiEuler operator=(const QuasiEuler& E){return *this;};
 
 };
 
@@ -108,7 +111,38 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 	return local_flux;
 }
 
+void QuasiEuler::updatePressure(StructuredGrid & data){
+	assert(data.Q_has_been_updated && "you need to update Q before updating other variables");
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	{
+		double q1 = data.Q(i);
+		double q2 = data.Q(i+1);
+		double q3 = data.Q(i+2);
+		data.pressure(i) = (gamma-1)*(q3/q1 - 1/(2*q1)*std::pow(q2,2));
+	}
+}
 
+void QuasiEuler::updateMach(StructuredGrid & data){
+	assert(data.Q_has_been_updated && "you need to update Q before updating other variables");
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	{
+		double q1 = data.Q(i);
+		double q2 = data.Q(i+1);
+		double q3 = data.Q(i+2);
+		data.pressure(i) = (gamma-1)*(q3/q1 - 1/(2*q1)*std::pow(q2,2));
+	}
+}
+
+void QuasiEuler::updateDensity(StructuredGrid & data){
+	assert(data.Q_has_been_updated && "you need to update Q before updating other variables");
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	{
+		double q1 = data.Q(i);
+		double q2 = data.Q(i+1);
+		double q3 = data.Q(i+2);
+		data.density(i) = q1;
+	}
+}
 
 
 
