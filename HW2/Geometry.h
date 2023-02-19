@@ -14,7 +14,7 @@ class StructuredGrid{
 
 	public:
 
-		const unsigned int problem_dimension, buffered_length;
+	    int problem_dimension, buffered_length;
 		int stop_iteration_index;
 		const int buffer_size = 2;
 		double dx;
@@ -28,13 +28,15 @@ class StructuredGrid{
 //TODO: fix readability of constructor
 		StructuredGrid(double start, double stop, int num_cells, int dim) :
 			L(start), R(stop), numCell(num_cells), mesh(num_cells+1), problem_dimension(dim),
-			buffered_length((num_cells+1+buffer_size)*(problem_dimension + 2)), Q((num_cells+1+buffer_size)*(problem_dimension + 2)),
-			pressure((num_cells+1+buffer_size)*(problem_dimension + 2)), density((num_cells+1+buffer_size)*(problem_dimension + 2)),
-			temperature((num_cells+1+buffer_size)*(problem_dimension + 2)), mach((num_cells+1+buffer_size)*(problem_dimension + 2))
+			Q((num_cells+1+2*buffer_size)*(problem_dimension + 2)), pressure((num_cells+1+2*buffer_size)*(problem_dimension + 2)),
+			density((num_cells+1+2*buffer_size)*(problem_dimension + 2)), temperature((num_cells+1+2*buffer_size)*(problem_dimension + 2)),
+			mach((num_cells+1+2*buffer_size)*(problem_dimension + 2))
 			{
 				dx = (R - L)/num_cells;
-				stop_iteration_index = buffered_length - buffer_size;
-//				Eigen::VectorXd tempMesh(num_cells + 1);
+				buffered_length = (num_cells+1+2*buffer_size)*(problem_dimension + 2);
+//				std::cout << "buff len " << buffered_length << std::endl;
+				stop_iteration_index = buffer_size + num_cells + 1;//TODO: rename this across project to something like node iterator stop_index
+
 					for (int j = 0; j < mesh.size(); ++j)
 					{
 						mesh(j) = L + dx*j;

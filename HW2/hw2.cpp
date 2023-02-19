@@ -1,6 +1,7 @@
 
 #include "Geometry.h"
 #include "QuasiEuler.h"
+#include "SpatialLinearSystemConstruction.h"
 #include <cmath>
 #include <iostream>
 #include "../Eigen/Dense"
@@ -50,8 +51,12 @@ int main(){
 		{
 			test(i) = i;
 		}
-		grid_p1.Q = test;
+		//setup a random Q
+		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
+		grid_p1.Q = Eigen::VectorXd::Random(grid_p1.Q.size(), 1);
+		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
 		QuasiEuler euler_problem(grid_p1, gamma);
+		SystemConstructionAndSolution solver(grid_p1);
 		//testing, clean up later.
 		Eigen::MatrixXd temp;
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
@@ -69,6 +74,13 @@ int main(){
 		euler_problem.pressureSensor(grid_p1, e_contributions);
 
 		std::cout << "Testing pressure sensor " << std::endl <<  e_contributions << std::endl;
+
+		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
+
+		std::cout << "Testing system matrix construction "<< std::endl;
+
+		solver.constructSystemMatrix(grid_p1, euler_problem);
+
 
 		//
 	}

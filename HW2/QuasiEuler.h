@@ -58,7 +58,7 @@ void QuasiEuler::pressureSensor(const StructuredGrid &data, Eigen::MatrixXd &e_c
 	double kappa4 = 1./50.;
 
 	assert(e_contributions.cols() == 2 && "we only have two parameters for shock sensing, use only two columns");
-	std::cout << "about to break" << std::endl;
+
 	for (int i = 2; i < data.mesh.size()-2; ++i)//TODO fix the indexing here
 	{
 		double topi = data.pressure(i+1) - 2*data.pressure(i) - data.pressure(i-1);
@@ -86,9 +86,10 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 
 	Eigen::MatrixXd local_flux(local_matrix_size, local_matrix_size);
 	Eigen::VectorXd local_Q(local_matrix_size);
-
+//	std::cout << "length of q " << data.Q.size() <<std::endl;
 	for(int i = 0; i<local_matrix_size; ++i)
 	{
+//		std::cout << "_________subiteration " <<  local_matrix_size*node_index + i << std::endl;
 		local_Q(i) = data.Q(local_matrix_size*node_index + i);
 	}
 //TODO: make this so that I can construct the matrix independent of dimension, right now
@@ -106,7 +107,7 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 			- (3*(gamma-1))/(2)*std::pow(local_Q(1)/local_Q(0),2);
 	local_flux(2,2) = gamma*(local_Q(1)/local_Q(0));
 
-	std::cout<< local_flux << std::endl;
+//	std::cout<< local_flux << std::endl;
 
 	return local_flux;
 }
