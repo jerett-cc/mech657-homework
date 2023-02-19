@@ -5,8 +5,8 @@
 #include <iostream>
 #include "../Eigen/Dense"
 
-/*TODO: wither pad the vectors, or create a conditional in loops that require data
- * out of bounds for the mesh size.
+/*TODO: either pad the vectors, or create a conditional in loops that require data
+ * out of bounds for the mesh size. 
  */
 
 
