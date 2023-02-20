@@ -79,7 +79,7 @@ int main(){
 
 		std::cout << "Testing system matrix construction "<< std::endl;
 
-		solver.constructSystemMatrix(grid_p1, euler_problem);
+		solver.calculateSpatialMatrix(grid_p1, euler_problem);
 
 
 		//

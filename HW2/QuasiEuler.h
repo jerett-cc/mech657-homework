@@ -41,6 +41,7 @@ class QuasiEuler{
 		//public parameters (the problem parameters)
 		double gamma, inlet_pressure, total_temperature, s_star;
 		double initial_pressure_left, initial_pressure_right, time;
+		double dt = 0.1; //TODO: initialize this to something.
 
 		QuasiEuler(StructuredGrid &mesh, double gamm)
 			: local_matrix_size(mesh.problem_dimension + 2), gamma(gamm)

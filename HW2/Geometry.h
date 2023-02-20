@@ -46,13 +46,19 @@ class StructuredGrid{
 			};
 
 		int get_size();
+		int estimateNumberNonzeroElements();
 
 		double L, R;
 		int numCell;
 };
 
 int StructuredGrid::get_size(){
-	return mesh.size();
+	return mesh.size()*(problem_dimension+2);
 }
+
+int StructuredGrid::estimateNumberNonzeroElements(){
+	return 25*(numCell+1);
+}
+
 
 #endif
