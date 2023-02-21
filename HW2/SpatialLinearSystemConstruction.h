@@ -16,7 +16,8 @@ class SystemConstructionAndSolution{
 
 		//constructor
 		SystemConstructionAndSolution(StructuredGrid & mesh)
-			:system_matrix(mesh.get_size(), mesh.get_size()), system_rhs(mesh.get_size())
+			:system_matrix(mesh.get_size(), mesh.get_size()), system_rhs(mesh.get_size()),
+			 sensor_factors(mesh.num_node, 2)
 		{
 		}
 		//public functions
@@ -31,6 +32,7 @@ class SystemConstructionAndSolution{
 		//public variables
 		Eigen::SparseMatrix<double, 1> system_matrix;//row major system matrix
 		Eigen::VectorXd system_rhs;//rhs of system
+		Eigen::MatrixXd sensor_factors;
 		T identity;//TODO: make a triplet list of identity elements, either here or in
 };
 
@@ -93,5 +95,6 @@ void SystemConstructionAndSolution::calculateDissipationContributionToMatrix(){
 		system_matrix.setFromTriplets(coefficients.begin(), coefficients.end());
 		std::cout << "System matrix excluding first and last " << std::endl << Eigen::MatrixXd(system_matrix) << std::endl;
 }
+
 
 #endif

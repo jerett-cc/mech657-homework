@@ -74,12 +74,15 @@ int main(){
 		euler_problem.pressureSensor(grid_p1, e_contributions);
 
 		std::cout << "Testing pressure sensor " << std::endl <<  e_contributions << std::endl;
+		std::cout << "Testing pressure sensor @@@ " << std::endl <<  grid_p1.sensor_contributions << std::endl;
 
 		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
 
-		std::cout << "Testing system matrix construction "<< std::endl;
 
-		solver.calculateSpatialMatrix(grid_p1, euler_problem);
+
+//		std::cout << "Testing system matrix construction "<< std::endl;
+//
+//		solver.calculateSpatialMatrix(grid_p1, euler_problem);
 
 
 		//

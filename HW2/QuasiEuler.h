@@ -33,7 +33,7 @@ class QuasiEuler{
 		void calculateLocalDissipation();
 
 		//helper functions
-		void pressureSensor(const StructuredGrid &data, Eigen::MatrixXd &e_contributions);
+		void pressureSensor(StructuredGrid &data);
 		void updatePressure(StructuredGrid & data);
 		void updateMach(StructuredGrid & data);
 		void updateDensity(StructuredGrid & data);
@@ -42,6 +42,7 @@ class QuasiEuler{
 		double gamma, inlet_pressure, total_temperature, s_star;
 		double initial_pressure_left, initial_pressure_right, time;
 		double dt = 0.1; //TODO: initialize this to something.
+
 
 		QuasiEuler(StructuredGrid &mesh, double gamm)
 			: local_matrix_size(mesh.problem_dimension + 2), gamma(gamm)
@@ -53,14 +54,14 @@ class QuasiEuler{
 
 //TODO: make pressure sensor, should return a matrix 2Xmesh.size that indicates the
 // values of epsilon2, epsilon4
-void QuasiEuler::pressureSensor(const StructuredGrid &data, Eigen::MatrixXd &e_contributions){
+void QuasiEuler::pressureSensor(StructuredGrid &data){
 	//assert(0 && "pressure sensor needs data outside of range, fix this before using.");
 	double kappa2 = 1./2.;
 	double kappa4 = 1./50.;
 
 	assert(e_contributions.cols() == 2 && "we only have two parameters for shock sensing, use only two columns");
-
-	for (int i = 2; i < data.mesh.size()-2; ++i)//TODO fix the indexing here
+	assert(e_contributions.rows()==data.sensor_contributions.rows());
+	for (int i = data.buffer_size; i < data.mesh.size()-data.buffer_size; ++i)//TODO fix the indexing here
 	{
 		double topi = data.pressure(i+1) - 2*data.pressure(i) - data.pressure(i-1);
 		double bottomi = data.pressure(i+1) + 2*data.pressure(i) - data.pressure(i-1);
@@ -76,8 +77,8 @@ void QuasiEuler::pressureSensor(const StructuredGrid &data, Eigen::MatrixXd &e_c
 		double GAMMA_i_next = std::abs(topi_next/bottomi_next);
 		double GAMMA_i_prev = std::abs(topi_prev/bottomi_prev);
 
-		e_contributions(i,0) = kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
-		e_contributions(i,1) = kappa4*std::max(0., kappa4 - e_contributions(i,0));
+		data.sensor_contributions(i,0) = kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
+		data.sensor_contributions(i,1) = kappa4*std::max(0., kappa4 - data.sensor_contributions(i,0));
 
 	}
 }

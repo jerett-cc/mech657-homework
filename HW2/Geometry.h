@@ -22,15 +22,16 @@ class StructuredGrid{
 
 		Eigen::VectorXd mesh;
 		Eigen::VectorXd temperature, pressure, density, mach, Q;
+		Eigen::MatrixXd sensor_contributions;
 //TODO: write this in a more dimension independent way, num cells to node points,
 // 		also, this class is only good for finite difference, make it work for finite volume?
 
 //TODO: fix readability of constructor
 		StructuredGrid(double start, double stop, int num_cells, int dim) :
-			L(start), R(stop), numCell(num_cells), mesh(num_cells+1), problem_dimension(dim),
+			L(start), R(stop), numCell(num_cells), mesh(num_cells+1), problem_dimension(dim), num_node(num_cells+1),
 			Q((num_cells+1+2*buffer_size)*(problem_dimension + 2)), pressure((num_cells+1+2*buffer_size)*(problem_dimension + 2)),
 			density((num_cells+1+2*buffer_size)*(problem_dimension + 2)), temperature((num_cells+1+2*buffer_size)*(problem_dimension + 2)),
-			mach((num_cells+1+2*buffer_size)*(problem_dimension + 2))
+			mach((num_cells+1+2*buffer_size)*(problem_dimension + 2)), sensor_contributions(mesh.size(), 2)
 			{
 				dx = (R - L)/num_cells;
 				buffered_length = (num_cells+1+2*buffer_size)*(problem_dimension + 2);
@@ -50,6 +51,7 @@ class StructuredGrid{
 
 		double L, R;
 		int numCell;
+		int num_node;
 };
 
 int StructuredGrid::get_size(){
