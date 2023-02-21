@@ -29,7 +29,7 @@ class QuasiEuler{
 		void S(const StructuredGrid &mesh);//return S(x) at mesh points
 			//TODO: write conversion functions and test them, could copy from hw1?
 		Eigen::MatrixXd calculateLocalInviscidFluxJacobian(const StructuredGrid &data,
-					const int node_index);//do this for node i
+					const int node_index) const;//do this for node i
 		void calculateLocalDissipation();
 
 		//helper functions
@@ -59,8 +59,9 @@ void QuasiEuler::pressureSensor(StructuredGrid &data){
 	double kappa2 = 1./2.;
 	double kappa4 = 1./50.;
 
-	assert(e_contributions.cols() == 2 && "we only have two parameters for shock sensing, use only two columns");
-	assert(e_contributions.rows()==data.sensor_contributions.rows());
+	assert(data.sensor_contributions.cols() == 2 && "we only have two parameters for shock sensing, use only two columns");
+	assert(data.mesh.size()==data.sensor_contributions.rows());
+
 	for (int i = data.buffer_size; i < data.mesh.size()-data.buffer_size; ++i)//TODO fix the indexing here
 	{
 		double topi = data.pressure(i+1) - 2*data.pressure(i) - data.pressure(i-1);
@@ -84,7 +85,7 @@ void QuasiEuler::pressureSensor(StructuredGrid &data){
 }
 
 Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredGrid & data,
-		const int node_index){
+		const int node_index) const{
 
 	Eigen::MatrixXd local_flux(local_matrix_size, local_matrix_size);
 	Eigen::VectorXd local_Q(local_matrix_size);

@@ -20,7 +20,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_cells = 4;
+	int num_cells = 3;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -62,8 +62,6 @@ int main(){
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
 
-		Eigen::MatrixXd e_contributions(grid_p1.mesh.size(), 2);
-
 		for (int i=0; i<grid_p1.pressure.size(); ++i)
 				{
 					if (i<=grid_p1.pressure.size()/2) {grid_p1.pressure(i) = 0.1;}
@@ -71,18 +69,18 @@ int main(){
 						grid_p1.pressure(i) = 0.;
 					}
 				}
-		euler_problem.pressureSensor(grid_p1, e_contributions);
+		euler_problem.pressureSensor(grid_p1);
 
-		std::cout << "Testing pressure sensor " << std::endl <<  e_contributions << std::endl;
-		std::cout << "Testing pressure sensor @@@ " << std::endl <<  grid_p1.sensor_contributions << std::endl;
+		std::cout << "Testing pressure sensor " << std::endl <<  grid_p1.sensor_contributions << std::endl;
 
 		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
 
 
 
-//		std::cout << "Testing system matrix construction "<< std::endl;
-//
-//		solver.calculateSpatialMatrix(grid_p1, euler_problem);
+		std::cout << "Testing spatial matrix construction "<< std::endl;
+
+		solver.calculateSpatialMatrix(grid_p1, euler_problem);
+
 
 
 		//
