@@ -37,7 +37,7 @@ class StructuredGrid{
 				buffered_length = (num_cells+1+2*buffer_size)*(problem_dimension + 2);
 //				std::cout << "buff len " << buffered_length << std::endl;
 				stop_iteration_index = buffer_size + num_cells + 1;//TODO: rename this across project to something like node iterator stop_index
-
+				num_components = dim +2;
 					for (int j = 0; j < mesh.size(); ++j)
 					{
 						mesh(j) = L + dx*j;
@@ -46,15 +46,16 @@ class StructuredGrid{
 						"Mesh should end at the specified stop value.");
 			};
 
-		int get_size();
+		int get_size()const ;
 		int estimateNumberNonzeroElements();
 
 		double L, R;
 		int numCell;
 		int num_node;
+		int num_components;
 };
 
-int StructuredGrid::get_size(){
+int StructuredGrid::get_size() const{
 	return mesh.size()*(problem_dimension+2);
 }
 

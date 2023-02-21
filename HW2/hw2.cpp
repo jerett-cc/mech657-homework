@@ -20,7 +20,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_cells = 3;
+	int num_cells = 4;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -64,7 +64,10 @@ int main(){
 
 		for (int i=0; i<grid_p1.pressure.size(); ++i)
 				{
-					if (i<=grid_p1.pressure.size()/2) {grid_p1.pressure(i) = 0.1;}
+					if (i<=grid_p1.pressure.size()/2)
+					{
+						grid_p1.pressure(i) = 0.000001;
+					}
 					else {
 						grid_p1.pressure(i) = 0.;
 					}
@@ -80,6 +83,11 @@ int main(){
 		std::cout << "Testing spatial matrix construction "<< std::endl;
 
 		solver.calculateSpatialMatrix(grid_p1, euler_problem);
+		solver.calculateDissipationContributionToMatrix(grid_p1);
+
+		std::cout<< solver.dense_system_matrix << std::endl;
+
+
 
 
 

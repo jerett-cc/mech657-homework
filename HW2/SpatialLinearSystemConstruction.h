@@ -17,17 +17,18 @@ class SystemConstructionAndSolution{
 		//constructor
 		SystemConstructionAndSolution(StructuredGrid & mesh)
 			:system_matrix(mesh.get_size(), mesh.get_size()), system_rhs(mesh.get_size()),
-			 sensor_factors(mesh.num_node, 2)
+			 sensor_factors(mesh.num_node, 2), system_size(mesh.get_size())
 		{
 			dense_system_matrix = Eigen::MatrixXd::Identity(mesh.get_size(), mesh.get_size());
-			std::cout << dense_system_matrix<<std::endl;
+			identity = Eigen::MatrixXd::Identity(mesh.num_components, mesh.num_components);
+
 		}
 		//public functions
 		void constructSystemMatrix(StructuredGrid &data, QuasiEuler &problem);//do this block row by block row?
 		void constructRHS();
 		void calculateResidualVector();//this is R(Q), do this point by point and
 		void calculateSpatialMatrix(StructuredGrid &data, const QuasiEuler &problem);
-		void calculateDissipationContributionToMatrix();
+		void calculateDissipationContributionToMatrix(const StructuredGrid &data);
 
 			//TODO: add functions for the linear solve step
 
@@ -36,7 +37,10 @@ class SystemConstructionAndSolution{
 		Eigen::MatrixXd dense_system_matrix;
 		Eigen::VectorXd system_rhs;//rhs of system
 		Eigen::MatrixXd sensor_factors;
-		T identity;//TODO: make a triplet list of identity elements, either here or in
+		Eigen::MatrixXd identity;
+
+		const int system_size;
+
 };
 
 
@@ -49,31 +53,55 @@ void SystemConstructionAndSolution::calculateSpatialMatrix(StructuredGrid &data,
 	{
 		Ai = problem.calculateLocalInviscidFluxJacobian(data, i);//calculate flux at node i
 		Ai_n = problem.calculateLocalInviscidFluxJacobian(data, i+1);//calculate flux at node i+1
+
 		int sub_index = problem.local_matrix_size * (i - data.buffer_size);
 
-		std::cout << "node " << sub_index << " , " << sub_index+problem.local_matrix_size << std::endl;
 		dense_system_matrix.block<3,3>(sub_index, sub_index+problem.local_matrix_size) += 0.5*problem.dt*Ai_n;
 		dense_system_matrix.block<3,3>(sub_index + problem.local_matrix_size, sub_index) += -0.5*problem.dt*Ai;
 	}
 
-	std::cout << "System matrix excluding first and last " << std::endl << dense_system_matrix << std::endl;
+//	std::cout << "System matrix excluding first and last " << std::endl << dense_system_matrix << std::endl;
 
 }
 
-void SystemConstructionAndSolution::calculateDissipationContributionToMatrix(){
-	std::vector<T> coefficients;
-	coefficients.reserve(system_matrix.cols()*5);//reserve an estimate of number of nonzero entries
-	//TODO: need to include the coefficients to the pressure sensor here. do both individually, and add them to the main marix
-	for (int i = 0; i <system_matrix.rows(); ++i)
+void SystemConstructionAndSolution::calculateDissipationContributionToMatrix(const StructuredGrid &data){
+
+	Eigen::MatrixXd stencil_high_order(data.num_components*data.num_node, data.Q.size());
+	Eigen::MatrixXd stencil_low_order(data.num_components*data.num_node, data.Q.size());
+	Eigen::MatrixXd result(data.get_size(), data.get_size());
+
+	result = Eigen::MatrixXd::Zero(data.get_size(), data.get_size());
+
+	for (int i = 0; i < data.num_node; ++i)//loop through each node
 	{
-		for (int j = 0; j<system_matrix.cols(); ++j)
-		{
-			coefficients.push_back(T(i,j, 1));//TODO: remove this placeholder, make pentadiagonal logic.
-		}
+		stencil_high_order.block<3,3>(i*data.num_components, i*data.num_components) = data.sensor_contributions(i,1)*(1*identity);
+		stencil_high_order.block<3,3>(i*data.num_components, (i+1)*data.num_components) = data.sensor_contributions(i,1)*(-4*identity);
+		stencil_high_order.block<3,3>(i*data.num_components, (i+2)*data.num_components) = data.sensor_contributions(i,1)*(6*identity);
+		stencil_high_order.block<3,3>(i*data.num_components, (i+3)*data.num_components) = data.sensor_contributions(i,1)*(-4*identity);
+		stencil_high_order.block<3,3>(i*data.num_components, (i+4)*data.num_components) = data.sensor_contributions(i,1)*(1*identity);
 	}
 
-		system_matrix.setFromTriplets(coefficients.begin(), coefficients.end());
-		std::cout << "System matrix excluding first and last " << std::endl << Eigen::MatrixXd(system_matrix) << std::endl;
+	for (int i = 0; i < data.num_node; ++i)//loop through each node
+		{
+			stencil_low_order.block<3,3>(i*data.num_components, (i+1)*data.num_components) = data.sensor_contributions(i,0)*(-1*identity);
+			stencil_low_order.block<3,3>(i*data.num_components, (i+2)*data.num_components) = data.sensor_contributions(i,0)*(2*identity);
+			stencil_low_order.block<3,3>(i*data.num_components, (i+3)*data.num_components) = data.sensor_contributions(i,0)*(-1*identity);
+		}
+
+	stencil_high_order += stencil_low_order;
+
+//	std::cout << stencil_high_order << "\n stencil ^^" <<std::endl;
+
+	//extract correct matrix
+	for (int i=data.num_components*data.buffer_size; i < data.stop_iteration_index*data.num_components; ++i)
+	{
+		result.col(i - data.num_components*data.buffer_size) = stencil_high_order.col(i);
+	}
+	result = 1/data.dx * result;
+//	std::cout << result << "\n stencil from e4 contribution ^^" <<std::endl;
+
+	dense_system_matrix += result;
+
 }
 
 
