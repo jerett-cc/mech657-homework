@@ -59,6 +59,7 @@ int StructuredGrid::get_size() const{
 	return mesh.size()*(problem_dimension+2);
 }
 
+//TODO: decide if this function is defunct
 int StructuredGrid::estimateNumberNonzeroElements(){
 	return 25*(numCell+1);
 }

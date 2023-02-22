@@ -26,7 +26,7 @@ class QuasiEuler{
 		const int local_matrix_size;
 
 		//public functions
-		void S(const StructuredGrid &mesh);//return S(x) at mesh points
+		void S(const StructuredGrid &mesh);//TODO: return S(x) at mesh points
 			//TODO: write conversion functions and test them, could copy from hw1?
 		Eigen::MatrixXd calculateLocalInviscidFluxJacobian(const StructuredGrid &data,
 					const int i) const;//do this for node i

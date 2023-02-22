@@ -24,10 +24,11 @@ class SystemConstructionAndSolution{
 		}
 		//public functions
 		void constructSystemMatrix(StructuredGrid &data, QuasiEuler &problem);//do this block row by block row?
-		void constructRHS();
+		void constructRHS_E(const StructuredGrid &data);//TODO add
+		void constructRHS_D(const StructuredGrid &data);//TODO add
 		void calculateResidualVector();//this is R(Q), do this point by point and
 		void calculateSpatialMatrix(StructuredGrid &data, const QuasiEuler &problem);
-		void calculateDissipationContributionToMatrix(const StructuredGrid &data);
+		void calculateDissipationMatrix(const StructuredGrid &data);
 
 			//TODO: add functions for the linear solve step
 
@@ -65,7 +66,7 @@ void SystemConstructionAndSolution::calculateSpatialMatrix(StructuredGrid &data,
 
 }
 
-void SystemConstructionAndSolution::calculateDissipationContributionToMatrix(const StructuredGrid &data){
+void SystemConstructionAndSolution::calculateDissipationMatrix(const StructuredGrid &data){
 
 	Eigen::MatrixXd stencil_high_order(data.num_components*data.num_node, data.buffered_length);
 	Eigen::MatrixXd stencil_low_order(data.num_components*data.num_node, data.buffered_length);

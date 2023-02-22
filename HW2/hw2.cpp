@@ -6,8 +6,20 @@
 #include <iostream>
 #include "../Eigen/Dense"
 
-/*TODO: either pad the vectors, or create a conditional in loops that require data
- * out of bounds for the mesh size. 
+/*TODO: 1. write conversion functions
+ * 		2. add printing functionality for results
+ * 		3. add extrapolation functions for filling values ad the padded boundaries (linear??)
+ * 		4. calculate the RHS dissipation, using averaging the matrix values A
+ * 		5. change artificial dissipation numbers for the problems
+ * 			i. subsonic kappa2 = 0, kappa4 = 0.02
+ * 			ii. transonic and shock kappa2 = 0.5, kappa4 = 0.02
+ * 			iii. i might not need to be implemented...
+ * 			iv. calculate a timestep from equation 4.138 based on a courant number (of about 2?)
+ * 		6. add a calculation of numerical error? need to incorporate the other code to calculate exact solutions
+ * 			i. use equation 4.176 from book
+ * 		7. figure out initial conditions (state at the inflow?
+ * 		8. calculate a courant number using this limits the time step for the shock problem
+ * 			i. u = 300m/s, a = 315m/s
  */
 
 
@@ -98,7 +110,7 @@ int main(){
 
 		std::cout << "testing dissipation matrix " << std::endl;
 
-		solver.calculateDissipationContributionToMatrix(grid_p1);
+		solver.calculateDissipationMatrix(grid_p1);
 
 //		std::cout<< solver.dense_system_matrix << std::endl;
 
