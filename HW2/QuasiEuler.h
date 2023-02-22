@@ -52,8 +52,6 @@ class QuasiEuler{
 
 };
 
-//TODO: make pressure sensor, should return a matrix 2Xmesh.size that indicates the
-// values of epsilon2, epsilon4
 void QuasiEuler::pressureSensor(StructuredGrid &data){
 	//assert(0 && "pressure sensor needs data outside of range, fix this before using.");
 	double kappa2 = 1./2.;
@@ -103,7 +101,7 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 							- (3*(gamma-1))/(2)*std::pow(data.Q[i](1)/data.Q[i](0),2);
 	local_flux(2,2) = gamma*(data.Q[i](1)/data.Q[i](0));
 
-	std::cout<< local_flux << std::endl;
+//	std::cout<<"local flux at " << i << " is\n " << local_flux << std::endl;
 
 	return local_flux;
 }

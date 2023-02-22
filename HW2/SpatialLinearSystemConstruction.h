@@ -21,7 +21,6 @@ class SystemConstructionAndSolution{
 		{
 			dense_system_matrix = Eigen::MatrixXd::Identity(mesh.get_size(), mesh.get_size());
 			identity = Eigen::MatrixXd::Identity(mesh.num_components, mesh.num_components);
-
 		}
 		//public functions
 		void constructSystemMatrix(StructuredGrid &data, QuasiEuler &problem);//do this block row by block row?
@@ -48,14 +47,16 @@ void SystemConstructionAndSolution::calculateSpatialMatrix(StructuredGrid &data,
 
 	Eigen::MatrixXd Ai(problem.local_matrix_size, problem.local_matrix_size);
 	Eigen::MatrixXd Ai_n(problem.local_matrix_size, problem.local_matrix_size);
-
-	for (int i = data.buffer_size; i <data.stop_iteration_index-1; ++i)//loop through all internal nodes
+//	std::cout << "stopping at " << data.stop_iteration_index << std::endl;
+	for (int i = data.buffer_size; i <data.stop_iteration_index-1; ++i)//loop through all nodes but last one
 	{
 		Ai = problem.calculateLocalInviscidFluxJacobian(data, i);//calculate flux at node i
 		Ai_n = problem.calculateLocalInviscidFluxJacobian(data, i+1);//calculate flux at node i+1
 
 		int sub_index = problem.local_matrix_size * (i - data.buffer_size);
-
+//		std::cout << "position " << i << std::endl;
+		assert(sub_index+problem.local_matrix_size + 3<=dense_system_matrix.cols() && "indexing outside of bounds");
+//		std::cout << "(" << sub_index << " , " <<sub_index+problem.local_matrix_size << ")" << std::endl;
 		dense_system_matrix.block<3,3>(sub_index, sub_index+problem.local_matrix_size) += 0.5*problem.dt*Ai_n;
 		dense_system_matrix.block<3,3>(sub_index + problem.local_matrix_size, sub_index) += -0.5*problem.dt*Ai;
 	}
@@ -66,9 +67,15 @@ void SystemConstructionAndSolution::calculateSpatialMatrix(StructuredGrid &data,
 
 void SystemConstructionAndSolution::calculateDissipationContributionToMatrix(const StructuredGrid &data){
 
-	Eigen::MatrixXd stencil_high_order(data.num_components*data.num_node, data.Q.size());
-	Eigen::MatrixXd stencil_low_order(data.num_components*data.num_node, data.Q.size());
+	Eigen::MatrixXd stencil_high_order(data.num_components*data.num_node, data.buffered_length);
+	Eigen::MatrixXd stencil_low_order(data.num_components*data.num_node, data.buffered_length);
+
+
+
 	Eigen::MatrixXd result(data.get_size(), data.get_size());
+	assert(result.cols()==system_matrix.cols()
+			&& result.rows() == system_matrix.rows()
+			&& "matrices for dissipation and system not same dimensions");
 
 	result = Eigen::MatrixXd::Zero(data.get_size(), data.get_size());
 

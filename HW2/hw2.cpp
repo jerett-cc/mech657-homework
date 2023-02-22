@@ -20,7 +20,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_cells = 4;
+	int num_cells = 2;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -55,14 +55,24 @@ int main(){
 		for (int i=0; i<grid_p1.Q.size(); ++i)
 		{
 //		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
+//		std::cout << "i is " << i <<std::endl;
 		Eigen::Vector3d a = Eigen::Vector3d::Random();
-		grid_p1.Q[i] = a;
+		if (std::fabs(a(0)-0)<1e-14)
+		{
+			a(0) = 1.;
+		}
+		else if (std::fabs(a(1)-0)<1e-14)
+		{
+			a(1) = 1.;
+		}
+		grid_p1.Q[i] += a;
 		}
 //		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
 		QuasiEuler euler_problem(grid_p1, gamma);
-//		SystemConstructionAndSolution solver(grid_p1);
+		SystemConstructionAndSolution solver(grid_p1);
 //		//testing, clean up later.
 		Eigen::MatrixXd temp;
+		std::cout << "testing local inviscid flux calculation "<< std::endl;
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
 
@@ -76,20 +86,23 @@ int main(){
 						grid_p1.pressure(i) = 0.;
 					}
 				}
+		std::cout << "Testing pressure sensor " << std::endl;
 		euler_problem.pressureSensor(grid_p1);
+		std::cout <<  grid_p1.sensor_contributions << std::endl;
 
-		std::cout << "Testing pressure sensor " << std::endl <<  grid_p1.sensor_contributions << std::endl;
+		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
 
-//		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
+		std::cout << "Testing spatial matrix construction "<< std::endl;
 
+		solver.calculateSpatialMatrix(grid_p1, euler_problem);
 
+		std::cout << "testing dissipation matrix " << std::endl;
 
-//		std::cout << "Testing spatial matrix construction "<< std::endl;
-//
-//		solver.calculateSpatialMatrix(grid_p1, euler_problem);
-//		solver.calculateDissipationContributionToMatrix(grid_p1);
-//
+		solver.calculateDissipationContributionToMatrix(grid_p1);
+
 //		std::cout<< solver.dense_system_matrix << std::endl;
+
+
 
 
 

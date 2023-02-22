@@ -30,8 +30,8 @@ class StructuredGrid{
 //TODO: fix readability of constructor
 		StructuredGrid(double start, double stop, int num_cells, int dim) :
 			L(start), R(stop), numCell(num_cells), mesh(num_cells+1), problem_dimension(dim), num_node(num_cells+1),
-			Q(num_cells+1), pressure(num_cells+1), density(num_cells+1), temperature(num_cells+1),
-			mach(num_cells+1), sensor_contributions(mesh.size(), 2)
+			Q(num_cells+1+2*buffer_size), pressure(num_cells+1+2*buffer_size), density(num_cells+1+2*buffer_size),
+			temperature(num_cells+1+2*buffer_size), mach(num_cells+1+2*buffer_size), sensor_contributions(mesh.size(), 2)
 			{
 				dx = (R - L)/num_cells;
 				buffered_length = (num_cells+1+2*buffer_size)*(problem_dimension + 2);//do I need still?
