@@ -52,12 +52,16 @@ int main(){
 			test(i) = i;
 		}
 		//setup a random Q
-		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
-		grid_p1.Q = Eigen::VectorXd::Random(grid_p1.Q.size(), 1);
-		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
+		for (int i=0; i<grid_p1.Q.size(); ++i)
+		{
+//		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
+		Eigen::Vector3d a = Eigen::Vector3d::Random();
+		grid_p1.Q[i] = a;
+		}
+//		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
 		QuasiEuler euler_problem(grid_p1, gamma);
-		SystemConstructionAndSolution solver(grid_p1);
-		//testing, clean up later.
+//		SystemConstructionAndSolution solver(grid_p1);
+//		//testing, clean up later.
 		Eigen::MatrixXd temp;
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
@@ -66,7 +70,7 @@ int main(){
 				{
 					if (i<=grid_p1.pressure.size()/2)
 					{
-						grid_p1.pressure(i) = 0.000001;
+						grid_p1.pressure(i) = 1.;
 					}
 					else {
 						grid_p1.pressure(i) = 0.;
@@ -76,16 +80,16 @@ int main(){
 
 		std::cout << "Testing pressure sensor " << std::endl <<  grid_p1.sensor_contributions << std::endl;
 
-		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
+//		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
 
 
 
-		std::cout << "Testing spatial matrix construction "<< std::endl;
-
-		solver.calculateSpatialMatrix(grid_p1, euler_problem);
-		solver.calculateDissipationContributionToMatrix(grid_p1);
-
-		std::cout<< solver.dense_system_matrix << std::endl;
+//		std::cout << "Testing spatial matrix construction "<< std::endl;
+//
+//		solver.calculateSpatialMatrix(grid_p1, euler_problem);
+//		solver.calculateDissipationContributionToMatrix(grid_p1);
+//
+//		std::cout<< solver.dense_system_matrix << std::endl;
 
 
 
