@@ -19,10 +19,14 @@ class StructuredGrid{
 		int stop_iteration_index;
 		const int buffer_size = 2;
 		double dx;
-		bool Q_has_been_updated = 0;
+		bool Q_has_been_updated = 1;
+		bool E_has_been_updated = 0;
+		bool Pressure_has_been_updated = 0;
+		bool Density_has_been_updated = 0;
+		bool Temperature_has_been_updated = 0;
 
 		Eigen::VectorXd mesh, temperature, pressure, density, mach;
-		std::vector<Eigen::Vector3d> Q;
+		std::vector<Eigen::Vector3d> Q, E;
 		Eigen::MatrixXd sensor_contributions;
 //TODO: write this in a more dimension independent way, num cells to node points,
 // 		also, this class is only good for finite difference, make it work for finite volume?
@@ -30,7 +34,7 @@ class StructuredGrid{
 //TODO: fix readability of constructor
 		StructuredGrid(double start, double stop, int num_cells, int dim) :
 			L(start), R(stop), numCell(num_cells), mesh(num_cells+1), problem_dimension(dim), num_node(num_cells+1),
-			Q(num_cells+1+2*buffer_size), pressure(num_cells+1+2*buffer_size), density(num_cells+1+2*buffer_size),
+			Q(num_cells+1+2*buffer_size), E(num_cells+1+2*buffer_size), pressure(num_cells+1+2*buffer_size), density(num_cells+1+2*buffer_size),
 			temperature(num_cells+1+2*buffer_size), mach(num_cells+1+2*buffer_size), sensor_contributions(mesh.size(), 2)
 			{
 				dx = (R - L)/num_cells;
@@ -48,6 +52,7 @@ class StructuredGrid{
 
 		int get_size()const ;
 		int estimateNumberNonzeroElements();
+		void clearUpdates();
 
 		double L, R;
 		int numCell;
@@ -62,6 +67,14 @@ int StructuredGrid::get_size() const{
 //TODO: decide if this function is defunct
 int StructuredGrid::estimateNumberNonzeroElements(){
 	return 25*(numCell+1);
+}
+
+void StructuredGrid::clearUpdates(){
+//  Q_has_been_updated = 0;
+  E_has_been_updated = 0;
+  Pressure_has_been_updated = 0;
+  Density_has_been_updated = 0;
+  Temperature_has_been_updated = 0;
 }
 
 

@@ -8,12 +8,20 @@
 #include "QuasiEuler.h"
 #include "Geometry.h"
 
-typedef Eigen::Triplet<double> T;
+typedef Eigen::Triplet<double> T;//TODO remove this?
 
 class SystemConstructionAndSolution{
 
 	public:
 
+    //public variables
+        Eigen::SparseMatrix<double, 1> system_matrix;//row major system matrix
+        Eigen::MatrixXd dense_system_matrix;
+        Eigen::VectorXd system_rhs;
+        Eigen::MatrixXd sensor_factors;
+        Eigen::MatrixXd identity;
+
+        const int system_size;
 		//constructor
 		SystemConstructionAndSolution(StructuredGrid & mesh)
 			:system_matrix(mesh.get_size(), mesh.get_size()), system_rhs(mesh.get_size()),
@@ -21,6 +29,7 @@ class SystemConstructionAndSolution{
 		{
 			dense_system_matrix = Eigen::MatrixXd::Identity(mesh.get_size(), mesh.get_size());
 			identity = Eigen::MatrixXd::Identity(mesh.num_components, mesh.num_components);
+			system_rhs = Eigen::VectorXd::Zero(mesh.get_size());
 		}
 		//public functions
 		void constructSystemMatrix(StructuredGrid &data, QuasiEuler &problem);//do this block row by block row?
@@ -28,21 +37,13 @@ class SystemConstructionAndSolution{
 		void constructRHS_D(const StructuredGrid &data);//TODO add
 		void calculateResidualVector();//this is R(Q), do this point by point and
 		void calculateSpatialMatrix(StructuredGrid &data, const QuasiEuler &problem);
-		void calculateDissipationMatrix(const StructuredGrid &data);
+		void calculateDissipationMatrix(const StructuredGrid &data, const QuasiEuler &problem);
 
 			//TODO: add functions for the linear solve step
 
-		//public variables
-		Eigen::SparseMatrix<double, 1> system_matrix;//row major system matrix
-		Eigen::MatrixXd dense_system_matrix;
-		Eigen::VectorXd system_rhs;//rhs of system
-		Eigen::MatrixXd sensor_factors;
-		Eigen::MatrixXd identity;
 
-		const int system_size;
 
 };
-
 
 void SystemConstructionAndSolution::calculateSpatialMatrix(StructuredGrid &data, const QuasiEuler &problem){
 
@@ -66,7 +67,7 @@ void SystemConstructionAndSolution::calculateSpatialMatrix(StructuredGrid &data,
 
 }
 
-void SystemConstructionAndSolution::calculateDissipationMatrix(const StructuredGrid &data){
+void SystemConstructionAndSolution::calculateDissipationMatrix(const StructuredGrid &data, const QuasiEuler &problem){
 
 	Eigen::MatrixXd stencil_high_order(data.num_components*data.num_node, data.buffered_length);
 	Eigen::MatrixXd stencil_low_order(data.num_components*data.num_node, data.buffered_length);
@@ -105,12 +106,59 @@ void SystemConstructionAndSolution::calculateDissipationMatrix(const StructuredG
 	{
 		result.col(i - data.num_components*data.buffer_size) = stencil_high_order.col(i);
 	}
-	result = 1/data.dx * result;
+	result = problem.dt/data.dx * result;
 //	std::cout << result << "\n stencil from e4 contribution ^^" <<std::endl;
 
 	dense_system_matrix += result;
 
 }
+
+void SystemConstructionAndSolution::constructRHS_E(const StructuredGrid &data){
+  assert(data.E_has_been_updated && "need to update E before RHS can be calculated");
+  assert(data.Pressure_has_been_updated && "need pressure to update the RHS E contribution");
+  int node_index = data.buffer_size;
+
+  for (int i = 0; i < data.num_node*data.num_components; i+=data.num_components)//for every node, calculate E
+  {
+    Eigen::VectorXd L_tmp = (data.E[node_index+1] - data.E[node_index-1])/(2*data.dx);
+    system_rhs(i) = L_tmp(0);
+    system_rhs(i+1) = L_tmp(1);
+    system_rhs(i+2) = L_tmp(2);
+
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #endif

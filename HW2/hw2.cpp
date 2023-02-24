@@ -6,7 +6,8 @@
 #include <iostream>
 #include "../Eigen/Dense"
 
-/*TODO: 1. write conversion functions
+/*TODO:
+ *    +++1. write conversion functions
  * 		2. add printing functionality for results
  * 		3. add extrapolation functions for filling values ad the padded boundaries (linear??)
  * 		4. calculate the RHS dissipation, using averaging the matrix values A
@@ -110,9 +111,12 @@ int main(){
 
 		std::cout << "testing dissipation matrix " << std::endl;
 
-		solver.calculateDissipationMatrix(grid_p1);
+		solver.calculateDissipationMatrix(grid_p1, euler_problem);
 
 //		std::cout<< solver.dense_system_matrix << std::endl;
+
+		euler_problem.updatePhysicalQuantities(grid_p1);
+		grid_p1.clearUpdates();
 
 
 

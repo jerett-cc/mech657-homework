@@ -29,14 +29,18 @@ class QuasiEuler{
 		void S(const StructuredGrid &mesh);//TODO: return S(x) at mesh points
 			//TODO: write conversion functions and test them, could copy from hw1?
 		Eigen::MatrixXd calculateLocalInviscidFluxJacobian(const StructuredGrid &data,
-					const int i) const;//do this for node i
+														   const int i) const;//do this for node i
 		void calculateLocalDissipation();
 
 		//helper functions
 		void pressureSensor(StructuredGrid &data);
+		void updateE(StructuredGrid &data);
 		void updatePressure(StructuredGrid & data);
 		void updateMach(StructuredGrid & data);
 		void updateDensity(StructuredGrid & data);
+		void updateTemp(StructuredGrid & data);
+		void updatePhysicalQuantities(StructuredGrid &data);
+		double calculateSoundSpeed(const StructuredGrid & data, const int index);
 
 		//public parameters (the problem parameters)
 		double gamma, inlet_pressure, total_temperature, s_star;
@@ -106,38 +110,88 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 	return local_flux;
 }
 
-//void QuasiEuler::updatePressure(StructuredGrid & data){
-//	assert(data.Q_has_been_updated && "you need to update Q before updating other variables");
-//	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
-//	{
-//		double q1 = data.Q(i);
-//		double q2 = data.Q(i+1);
-//		double q3 = data.Q(i+2);
-//		data.pressure(i) = (gamma-1)*(q3/q1 - 1/(2*q1)*std::pow(q2,2));
-//	}
-//}
-//
-//void QuasiEuler::updateMach(StructuredGrid & data){
-//	assert(data.Q_has_been_updated && "you need to update Q before updating other variables");
-//	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
-//	{
-//		double q1 = data.Q(i);
-//		double q2 = data.Q(i+1);
-//		double q3 = data.Q(i+2);
-//		data.pressure(i) = (gamma-1)*(q3/q1 - 1/(2*q1)*std::pow(q2,2));
-//	}
-//}
-//
-//void QuasiEuler::updateDensity(StructuredGrid & data){
-//	assert(data.Q_has_been_updated && "you need to update Q before updating other variables");
-//	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
-//	{
-//		double q1 = data.Q(i);
-//		double q2 = data.Q(i+1);
-//		double q3 = data.Q(i+2);
-//		data.density(i) = q1;
-//	}
-//}
+void QuasiEuler::updatePhysicalQuantities(StructuredGrid &data){
+  updateDensity(data);
+  updatePressure(data);
+  updateMach(data);
+}
+
+void QuasiEuler::updatePressure(StructuredGrid & data){
+	assert(data.Q_has_been_updated && "you need to update Q before updating pressure");
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	{
+		double q1 = data.Q[i](0);
+		double q2 = data.Q[i](1);
+		double q3 = data.Q[i](2);
+		data.pressure(i) = (gamma-1)*(q3/q1 - 1/(2*q1)*std::pow(q2,2));
+	}
+	data.Pressure_has_been_updated = 1;
+}
+
+void QuasiEuler::updateMach(StructuredGrid & data){
+	assert(data.Q_has_been_updated
+	       && "you need to update Q before updating other variables");
+	assert(data.Pressure_has_been_updated
+	       && "you need to update pressure before updating the mach");
+	assert(data.Density_has_been_updated
+	       && "you need to update density before updating the mach");
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	{
+	  double q1 = data.Q[i](0);
+	  double q2 = data.Q[i](1);
+	  double q3 = data.Q[i](2);
+		data.mach(i) = (q2/q1)/(QuasiEuler::calculateSoundSpeed(data, i));
+	}
+}
+
+void QuasiEuler::updateDensity(StructuredGrid & data){
+	assert(data.Q_has_been_updated && "you need to update Q before updating density");
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	{
+	  double q1 = data.Q[i](0);
+	  double q2 = data.Q[i](1);
+	  double q3 = data.Q[i](2);
+		data.density(i) = q1;
+	}
+	data.Density_has_been_updated = 1;
+}
+
+void QuasiEuler::updateTemp(StructuredGrid & data){
+  assert(0 && "not implemented yet.");
+  assert(data.Q_has_been_updated
+         && "you need to update Q before updating other variables");
+  assert(data.Pressure_has_been_updated
+         && "you need to update pressure before updating the temperature");
+  assert(data.Density_has_been_updated
+         && "you need to update density before updating the temperature");
+
+  for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+  {
+    double q1 = data.Q[i](0);
+    double q2 = data.Q[i](1);
+    double q3 = data.Q[i](2);
+//    data.temperature(i) = data.pressure(i)/(data);
+  }
+}
+
+void QuasiEuler::updateE(StructuredGrid &data){
+  assert(data.Pressure_has_been_updated
+         && "need pressure to calculate E");
+  for (int i = 0; i < data.E.size(); ++i)
+    {
+      double q1 = data.Q[i](0);
+      double q2 = data.Q[i](1);
+      double q3 = data.Q[i](2);
+      data.E[i](0) = q2;
+      data.E[i](1) = q2 + data.pressure(i);
+      data.E[i](1) = q3 + data.density(i)*data.pressure(i) - data.pressure(i);
+    }
+  data.E_has_been_updated = 1;
+}
+
+double QuasiEuler::calculateSoundSpeed(const StructuredGrid &data, const int index){
+  return std::sqrt(gamma*data.pressure(index)/data.density(index));
+}
 
 
 
