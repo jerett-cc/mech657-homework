@@ -40,7 +40,7 @@ class QuasiEuler{
 		void updateDensity(StructuredGrid & data);
 		void updateTemp(StructuredGrid & data);
 		void updatePhysicalQuantities(StructuredGrid &data);
-		double calculateSoundSpeed(const StructuredGrid & data, const int index);
+		double calculateSoundSpeed(const StructuredGrid & data, const int index) const;
 
 		//public parameters (the problem parameters)
 		double gamma, inlet_pressure, total_temperature, s_star;
@@ -114,6 +114,7 @@ void QuasiEuler::updatePhysicalQuantities(StructuredGrid &data){
   updateDensity(data);
   updatePressure(data);
   updateMach(data);
+  updateE(data);
 }
 
 void QuasiEuler::updatePressure(StructuredGrid & data){
@@ -138,8 +139,11 @@ void QuasiEuler::updateMach(StructuredGrid & data){
 	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
 	{
 	  double q1 = data.Q[i](0);
+	  std::cout << "q1 is" << q1 << std::endl;
 	  double q2 = data.Q[i](1);
+	  std::cout << "q2 is" << q2 << std::endl;
 	  double q3 = data.Q[i](2);
+	  std::cout << "q3 is" << q3 << std::endl;
 		data.mach(i) = (q2/q1)/(QuasiEuler::calculateSoundSpeed(data, i));
 	}
 }
@@ -189,8 +193,11 @@ void QuasiEuler::updateE(StructuredGrid &data){
   data.E_has_been_updated = 1;
 }
 
-double QuasiEuler::calculateSoundSpeed(const StructuredGrid &data, const int index){
+double QuasiEuler::calculateSoundSpeed(const StructuredGrid &data, const int index) const{
+  std::cout << "density at index " << index << " is " << data.density(index) << std::endl;
+  std::cout << "pressure at index " << index << " is " << data.pressure(index) << std::endl;
   return std::sqrt(gamma*data.pressure(index)/data.density(index));
+//  return gamma*data.R* data.
 }
 
 

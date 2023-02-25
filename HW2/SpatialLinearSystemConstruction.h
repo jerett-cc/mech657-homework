@@ -34,14 +34,14 @@ class SystemConstructionAndSolution{
 		//public functions
 		void constructSystemMatrix(StructuredGrid &data, QuasiEuler &problem);//do this block row by block row?
 		void constructRHS_E(const StructuredGrid &data);//TODO add
-		void constructRHS_D(const StructuredGrid &data);//TODO add
-		void calculateResidualVector();//this is R(Q), do this point by point and
+		void constructRHS_D( StructuredGrid &data,  QuasiEuler &problem);//TODO add
+		void calculateResidualVector( StructuredGrid &data,  QuasiEuler &problem);//this is R(Q), do this point by point and
 		void calculateSpatialMatrix(StructuredGrid &data, const QuasiEuler &problem);
 		void calculateDissipationMatrix(const StructuredGrid &data, const QuasiEuler &problem);
+		Eigen::Vector3d lowOrderDifferencing( StructuredGrid &data,  QuasiEuler &problem,  int index);
+		Eigen::Vector3d highOrderDifferencing( StructuredGrid &data,  QuasiEuler &problem,  int index);
 
 			//TODO: add functions for the linear solve step
-
-
 
 };
 
@@ -113,6 +113,14 @@ void SystemConstructionAndSolution::calculateDissipationMatrix(const StructuredG
 
 }
 
+void SystemConstructionAndSolution::calculateResidualVector( StructuredGrid &data,  QuasiEuler &problem){
+  std::cout << "calculating E for RHS\n";
+  SystemConstructionAndSolution::constructRHS_E(data);
+  std::cout << "calculating D for RHS\n";
+  SystemConstructionAndSolution::constructRHS_D(data, problem);
+  system_rhs = -1*problem.dt*system_rhs;
+}
+
 void SystemConstructionAndSolution::constructRHS_E(const StructuredGrid &data){
   assert(data.E_has_been_updated && "need to update E before RHS can be calculated");
   assert(data.Pressure_has_been_updated && "need pressure to update the RHS E contribution");
@@ -124,16 +132,48 @@ void SystemConstructionAndSolution::constructRHS_E(const StructuredGrid &data){
     system_rhs(i) = L_tmp(0);
     system_rhs(i+1) = L_tmp(1);
     system_rhs(i+2) = L_tmp(2);
+    ++node_index;
 
   }
-
 }
 
+void SystemConstructionAndSolution::constructRHS_D( StructuredGrid &data,  QuasiEuler &problem){
+  std::vector<Eigen::Vector3d> tmp_h = data.Q;//we will overwrite this
+  std::vector<Eigen::Vector3d> tmp_l = data.Q;
 
+  for(int i = data.buffer_size-1; i<data.stop_iteration_index+1; ++i)
+  {
+    tmp_h[i] = SystemConstructionAndSolution::highOrderDifferencing(data, problem, i);
+    tmp_l[i] = SystemConstructionAndSolution::lowOrderDifferencing(data, problem, i);
+  }
+  int node_index = data.buffer_size;
+  for(int i = 0; i < data.num_node*data.num_components; i+=data.num_components)
+  {
+    system_rhs(i) -= 1/data.dx * (tmp_l[node_index](0) - tmp_l[node_index](0)) - 1/data.dx *(tmp_h[node_index](0) - tmp_h[node_index](0));
+    system_rhs(i+1) -= 1/data.dx * (tmp_l[node_index](1) - tmp_l[node_index](1)) - 1/data.dx *(tmp_h[node_index](1) - tmp_h[node_index](1));
+    system_rhs(i+2) -= 1/data.dx * (tmp_l[node_index](0) - tmp_l[node_index](2)) - 1/data.dx *(tmp_h[node_index](2) - tmp_h[node_index](2));
+    ++node_index;
+  }
+}
 
+//should return the value of e^2 (|u_i| + a_i)|Delta U_i
+Eigen::Vector3d SystemConstructionAndSolution::lowOrderDifferencing( StructuredGrid &data,  QuasiEuler &problem, int index){
+  double u_1 = data.mach(index+1);
+  double u_0 = data.mach(index);
+  double a_1 = problem.calculateSoundSpeed(data, index+1);
+  double a_0 = problem.calculateSoundSpeed(data, index);
+  return (data.sensor_contributions(index + 1)*(std::abs(u_1) + a_1)
+               + data.sensor_contributions(index)*(std::abs(u_0) + a_0))/2 * (data.Q[index+1] - data.Q[index]);
+}
 
-
-
+Eigen::Vector3d SystemConstructionAndSolution::highOrderDifferencing( StructuredGrid &data,  QuasiEuler &problem,  int index){
+  double u_1 = data.mach(index+1);
+  double u_0 = data.mach(index);
+  double a_1 = problem.calculateSoundSpeed(data, index+1);
+  double a_0 = problem.calculateSoundSpeed(data, index);
+  return (data.sensor_contributions(index + 1)*(std::abs(u_1) + a_1) + data.sensor_contributions(index)*(std::abs(u_0) + a_0))/2
+         * (data.Q[index+2] - 3* data.Q[index+1] + 3*data.Q[index] - data.Q[index-1]);
+}
 
 
 

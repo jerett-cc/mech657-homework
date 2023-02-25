@@ -67,18 +67,13 @@ int main(){
 		//setup a random Q
 		for (int i=0; i<grid_p1.Q.size(); ++i)
 		{
-//		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
-//		std::cout << "i is " << i <<std::endl;
-		Eigen::Vector3d a = Eigen::Vector3d::Random();
-		if (std::fabs(a(0)-0)<1e-14)
-		{
-			a(0) = 1.;
-		}
-		else if (std::fabs(a(1)-0)<1e-14)
-		{
-			a(1) = 1.;
-		}
-		grid_p1.Q[i] += a;
+  //		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
+  //		std::cout << "i is " << i <<std::endl;
+      Eigen::Vector3d a = Eigen::Vector3d::Random();
+      a(0) = total_inlet_pressure_1 / (R*total_temperature_1);
+      a(1) = 0.1;
+      a(2) = 0.1;
+      grid_p1.Q[i] += a;
 		}
 //		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
 		QuasiEuler euler_problem(grid_p1, gamma);
@@ -91,13 +86,7 @@ int main(){
 
 		for (int i=0; i<grid_p1.pressure.size(); ++i)
 				{
-					if (i<=grid_p1.pressure.size()/2)
-					{
-						grid_p1.pressure(i) = 1.;
-					}
-					else {
-						grid_p1.pressure(i) = 0.;
-					}
+					grid_p1.pressure(i) = total_inlet_pressure_1;
 				}
 		std::cout << "Testing pressure sensor " << std::endl;
 		euler_problem.pressureSensor(grid_p1);
@@ -115,8 +104,17 @@ int main(){
 
 //		std::cout<< solver.dense_system_matrix << std::endl;
 
+		std::cout << "testing update quantities " << std::endl;
 		euler_problem.updatePhysicalQuantities(grid_p1);
-		grid_p1.clearUpdates();
+//		grid_p1.clearUpdates();
+		std::cout << "mach is: \n" << grid_p1.mach << std::endl;
+		std::cout << "density is: \n" << grid_p1.density << std::endl;
+		std::cout << "pressure is: \n" << grid_p1.pressure << std::endl;
+
+//		std::cout << "testing rhs construction " << std::endl;
+//		solver.calculateResidualVector(grid_p1, euler_problem);
+//
+//		std::cout << "residual vector:\n" << solver.system_rhs << std::endl;
 
 
 
