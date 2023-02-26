@@ -57,26 +57,31 @@ int main(){
 
 	{
 		StructuredGrid grid_p1(Left, Right, num_cells, dimension);
+		QuasiEuler euler_problem(grid_p1, gamma, total_inlet_pressure_1, total_temperature_1, S_star_1, R, 0);
 
 		//set up test Q
-		Eigen::VectorXd test((dimension+2)*(num_cells+1));
-		for (int i=0; i<test.size(); ++i)
-		{
-			test(i) = i;
-		}
+		std::cout << "setting initial condition " << std::endl;
+		euler_problem.setInitialCondition(grid_p1);
+		std::cout << "q in middle is\n" << grid_p1.Q[4] << std::endl;
+
+//		Eigen::VectorXd test((dimension+2)*(num_cells+1));
+//		for (int i=0; i<test.size(); ++i)
+//		{
+//			test(i) = i;
+//		}
 		//setup a random Q
-		for (int i=0; i<grid_p1.Q.size(); ++i)
-		{
-  //		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
-  //		std::cout << "i is " << i <<std::endl;
-      Eigen::Vector3d a = Eigen::Vector3d::Random();
-      a(0) = total_inlet_pressure_1 / (R*total_temperature_1);
-      a(1) = 0.1;
-      a(2) = 0.1;
-      grid_p1.Q[i] += a;
-		}
+//		for (int i=0; i<grid_p1.Q.size(); ++i)
+//		{
+//  //		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
+//  //		std::cout << "i is " << i <<std::endl;
+//      Eigen::Vector3d a = Eigen::Vector3d::Random();
+//      a(0) = total_inlet_pressure_1 / (R*total_temperature_1);
+//      a(1) = 0.1;
+//      a(2) = 0.1;
+//      grid_p1.Q[i] += a;
+//		}
 //		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
-		QuasiEuler euler_problem(grid_p1, gamma);
+
 		SystemConstructionAndSolution solver(grid_p1);
 //		//testing, clean up later.
 		Eigen::MatrixXd temp;
@@ -84,10 +89,6 @@ int main(){
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
 		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
 
-		for (int i=0; i<grid_p1.pressure.size(); ++i)
-				{
-					grid_p1.pressure(i) = total_inlet_pressure_1;
-				}
 		std::cout << "Testing pressure sensor " << std::endl;
 		euler_problem.pressureSensor(grid_p1);
 		std::cout <<  grid_p1.sensor_contributions << std::endl;

@@ -24,6 +24,7 @@ class StructuredGrid{
 		bool Pressure_has_been_updated = 0;
 		bool Density_has_been_updated = 0;
 		bool Temperature_has_been_updated = 0;
+		bool boundary_has_been_updated = 0;
 
 		Eigen::VectorXd mesh, temperature, pressure, density, mach;
 		std::vector<Eigen::Vector3d> Q, E;
@@ -53,6 +54,7 @@ class StructuredGrid{
 		int get_size()const ;
 		int estimateNumberNonzeroElements();
 		void clearUpdates();
+		void interpolateBoundary();
 
 		double L, R;
 		int numCell;
@@ -69,6 +71,7 @@ int StructuredGrid::estimateNumberNonzeroElements(){
 	return 25*(numCell+1);
 }
 
+//TODO setup the Q update flag
 void StructuredGrid::clearUpdates(){
 //  Q_has_been_updated = 0;
   E_has_been_updated = 0;
@@ -76,6 +79,58 @@ void StructuredGrid::clearUpdates(){
   Density_has_been_updated = 0;
   Temperature_has_been_updated = 0;
 }
+
+//interpolates the boundary values to use for our stencil
+//TODO get working, is broken now.
+void StructuredGrid::interpolateBoundary(){
+  for (int i = buffer_size-1; i>-1; --i)
+  {
+    std::cout << i<< std::endl;
+    Eigen::Vector3d left_slope = (Q[i + 2] - Q[i + 1])/dx;
+    Eigen::Vector3d right_slope = (Q[Q.size()-1-i] - Q[Q.size()-2-i])/dx;
+    Q[i] = Q[buffer_size+i] - left_slope*dx;
+    Q[Q.size()-1-i] = Q[Q.size()-1-i] + right_slope*dx;
+  }
+  boundary_has_been_updated = 1;
+
+  std::cout << Q[0] << Q[1] << std::endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #endif

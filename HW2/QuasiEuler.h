@@ -26,7 +26,7 @@ class QuasiEuler{
 		const int local_matrix_size;
 
 		//public functions
-		void S(const StructuredGrid &mesh);//TODO: return S(x) at mesh points
+		double S(const double x);
 			//TODO: write conversion functions and test them, could copy from hw1?
 		Eigen::MatrixXd calculateLocalInviscidFluxJacobian(const StructuredGrid &data,
 														   const int i) const;//do this for node i
@@ -40,24 +40,32 @@ class QuasiEuler{
 		void updateDensity(StructuredGrid & data);
 		void updateTemp(StructuredGrid & data);
 		void updatePhysicalQuantities(StructuredGrid &data);
-		double calculateSoundSpeed(const StructuredGrid & data, const int index) const;
+		double calculateSoundSpeed(const StructuredGrid &data, const int index) const;
+		void setInitialCondition(StructuredGrid &data);
+		double nonlinearFunctionToSolveP1(double M,const StructuredGrid &data);
+		double nonlinearFunctionToSolveP1Deriv(double M,const StructuredGrid &data);
 
 		//public parameters (the problem parameters)
 		double gamma, inlet_pressure, total_temperature, s_star;
 		double initial_pressure_left, initial_pressure_right, time;
+		double R;
 		double dt = 0.1; //TODO: initialize this to something.
 
 
-		QuasiEuler(StructuredGrid &mesh, double gamm)
-			: local_matrix_size(mesh.problem_dimension + 2), gamma(gamm)
+		QuasiEuler(StructuredGrid &mesh, double gamm, double inletP, double T, double sStar, double R_constant, double initial_time)
+			: local_matrix_size(mesh.problem_dimension + 2), gamma(gamm),
+			  inlet_pressure(inletP), total_temperature(T), s_star(sStar), time(initial_time),
+			  R(R_constant)
 		{
+		  initial_pressure_left = -1;//TODO remove these...
+		  initial_pressure_right = -1;
 		};
 		QuasiEuler operator=(const QuasiEuler& E){return *this;};
 
 };
 
 void QuasiEuler::pressureSensor(StructuredGrid &data){
-	//assert(0 && "pressure sensor needs data outside of range, fix this before using.");
+
 	double kappa2 = 1./2.;
 	double kappa4 = 1./50.;
 
@@ -86,6 +94,35 @@ void QuasiEuler::pressureSensor(StructuredGrid &data){
 	}
 }
 
+void QuasiEuler::setInitialCondition(StructuredGrid &data){
+  double density = inlet_pressure/ (R* total_temperature);
+
+  double mach = 0.5;
+
+  while(std::fabs(nonlinearFunctionToSolveP1(mach, data))>1e-13)
+  {
+    mach = mach -nonlinearFunctionToSolveP1(mach, data)/nonlinearFunctionToSolveP1Deriv(mach, data);
+  }
+
+  double velocity = std::sqrt(gamma*inlet_pressure/density) * mach;
+  double momentum = velocity * density;
+  double energy = density * total_temperature * R / (gamma-1);
+  double energy_momentum = density * energy;
+
+  std::cout << "density = " << density << std::endl
+            << "momentum = " << momentum << std::endl
+            << "energy momentum = " << energy_momentum << std::endl
+            << "mach = " << mach << std::endl;
+  assert(data.Q.size() - data.buffer_size == data.stop_iteration_index && "you are attempting to index outside of the range of Q");
+  for (int i = data.buffer_size; i <data.stop_iteration_index; ++i)
+  {
+    data.Q[i](0) = density;
+    data.Q[i](1) = momentum;
+    data.Q[i](2) = energy_momentum;
+  }
+
+}
+
 Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredGrid & data,
 		const int i) const{
 
@@ -111,6 +148,7 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 }
 
 void QuasiEuler::updatePhysicalQuantities(StructuredGrid &data){
+  data.interpolateBoundary();
   updateDensity(data);
   updatePressure(data);
   updateMach(data);
@@ -200,7 +238,31 @@ double QuasiEuler::calculateSoundSpeed(const StructuredGrid &data, const int ind
 //  return gamma*data.R* data.
 }
 
+double QuasiEuler::S(const double x){
+  if(x <= 5)
+  {
+    return 1.0 + 1.5*std::pow(1-x/5,2);
+  }
+  else if(x >5)
+  {
+    return 1.0 + 0.5*std::pow(1-x/5,2);
+  }
+  else return 0.0;
+}
 
+double QuasiEuler::nonlinearFunctionToSolveP1(double M,const StructuredGrid &data){
+
+  double inside = 2/(gamma +1) + (gamma - 1)/(gamma+1)*pow(M,2);
+  double exponent = (gamma + 1)/(2*(gamma-1));
+  assert(fabs(exponent - 3)<1e-13);
+  return pow(inside, exponent) - (S(data.mesh(data.buffer_size))*M)/(s_star);
+}
+
+double QuasiEuler::nonlinearFunctionToSolveP1Deriv(double M,const StructuredGrid &data){
+  double inside = 2/(gamma +1) + (gamma - 1)/(gamma+1)*pow(M,2);
+  double exponent = (gamma + 1)/(2*(gamma-1));
+  return M*pow(inside, exponent-1) - (S(data.mesh(data.buffer_size)))/(s_star);
+}
 
 
 
