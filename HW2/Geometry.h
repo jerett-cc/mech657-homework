@@ -81,16 +81,22 @@ void StructuredGrid::clearUpdates(){
 }
 
 //interpolates the boundary values to use for our stencil
-//TODO get working, is broken now.
 void StructuredGrid::interpolateBoundary(){
   for (int i = buffer_size-1; i>-1; --i)
   {
-    std::cout << i<< std::endl;
+//    std::cout <<"boundary index: " <<  i<< std::endl;
     Eigen::Vector3d left_slope = (Q[i + 2] - Q[i + 1])/dx;
-    Eigen::Vector3d right_slope = (Q[Q.size()-1-i] - Q[Q.size()-2-i])/dx;
-    Q[i] = Q[buffer_size+i] - left_slope*dx;
-    Q[Q.size()-1-i] = Q[Q.size()-1-i] + right_slope*dx;
+//    std::cout << "Left slope \n" << left_slope<< std::endl;
+    Eigen::Vector3d right_slope = (Q[Q.size()-1-i-1] - Q[Q.size()-1-i-2])/dx;
+//    std::cout << "R slope \n" << right_slope<< std::endl;
+    Q[i] = Q[i+1] - left_slope*dx;
+//    std::cout << "left value \n" << Q[i]<< std::endl;
+    Q[Q.size()-1-i] = Q[Q.size()-1-i-1] + right_slope*dx;
+//    std::cout << "right value \n" << Q[Q.size()-1-i]<< std::endl;
+
   }
+
+  std::cout<< "----------------------------" << std::endl;
   boundary_has_been_updated = 1;
 
   std::cout << Q[0] << Q[1] << std::endl;

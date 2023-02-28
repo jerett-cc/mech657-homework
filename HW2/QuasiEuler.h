@@ -27,7 +27,7 @@ class QuasiEuler{
 
 		//public functions
 		double S(const double x);
-			//TODO: write conversion functions and test them, could copy from hw1?
+
 		Eigen::MatrixXd calculateLocalInviscidFluxJacobian(const StructuredGrid &data,
 														   const int i) const;//do this for node i
 		void calculateLocalDissipation();
@@ -48,8 +48,8 @@ class QuasiEuler{
 		//public parameters (the problem parameters)
 		double gamma, inlet_pressure, total_temperature, s_star;
 		double initial_pressure_left, initial_pressure_right, time;
-		double R;
-		double dt = 0.1; //TODO: initialize this to something.
+		double R, CFL;
+		double dt; //TODO: initialize this to something.
 
 
 		QuasiEuler(StructuredGrid &mesh, double gamm, double inletP, double T, double sStar, double R_constant, double initial_time)
@@ -57,6 +57,9 @@ class QuasiEuler{
 			  inlet_pressure(inletP), total_temperature(T), s_star(sStar), time(initial_time),
 			  R(R_constant)
 		{
+		  CFL = .9;
+		  dt = mesh.dx /(300. + 315.);//todo adapt the courant number??
+		                    //this is for a fluid velocity of 0.5
 		  initial_pressure_left = -1;//TODO remove these...
 		  initial_pressure_right = -1;
 		};
@@ -110,6 +113,7 @@ void QuasiEuler::setInitialCondition(StructuredGrid &data){
   double energy_momentum = density * energy;
 
   std::cout << "density = " << density << std::endl
+            << "velocity is = " << velocity << std::endl
             << "momentum = " << momentum << std::endl
             << "energy momentum = " << energy_momentum << std::endl
             << "mach = " << mach << std::endl;
@@ -157,7 +161,7 @@ void QuasiEuler::updatePhysicalQuantities(StructuredGrid &data){
 
 void QuasiEuler::updatePressure(StructuredGrid & data){
 	assert(data.Q_has_been_updated && "you need to update Q before updating pressure");
-	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	for (int i = 0; i < data.Q.size(); ++i)
 	{
 		double q1 = data.Q[i](0);
 		double q2 = data.Q[i](1);
@@ -174,7 +178,7 @@ void QuasiEuler::updateMach(StructuredGrid & data){
 	       && "you need to update pressure before updating the mach");
 	assert(data.Density_has_been_updated
 	       && "you need to update density before updating the mach");
-	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	for (int i = 0; i < data.Q.size(); ++i)
 	{
 	  double q1 = data.Q[i](0);
 	  std::cout << "q1 is" << q1 << std::endl;
@@ -188,7 +192,7 @@ void QuasiEuler::updateMach(StructuredGrid & data){
 
 void QuasiEuler::updateDensity(StructuredGrid & data){
 	assert(data.Q_has_been_updated && "you need to update Q before updating density");
-	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+	for (int i = 0; i < data.Q.size(); ++i)
 	{
 	  double q1 = data.Q[i](0);
 	  double q2 = data.Q[i](1);
@@ -207,7 +211,7 @@ void QuasiEuler::updateTemp(StructuredGrid & data){
   assert(data.Density_has_been_updated
          && "you need to update density before updating the temperature");
 
-  for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)
+  for (int i = 0; i < data.Q.size(); ++i)
   {
     double q1 = data.Q[i](0);
     double q2 = data.Q[i](1);
@@ -232,10 +236,11 @@ void QuasiEuler::updateE(StructuredGrid &data){
 }
 
 double QuasiEuler::calculateSoundSpeed(const StructuredGrid &data, const int index) const{
-  std::cout << "density at index " << index << " is " << data.density(index) << std::endl;
-  std::cout << "pressure at index " << index << " is " << data.pressure(index) << std::endl;
-  return std::sqrt(gamma*data.pressure(index)/data.density(index));
-//  return gamma*data.R* data.
+//  std::cout << "density at index " << index << " is " << data.density(index) << std::endl;
+//  std::cout << "pressur at index " << index << " is " << data.pressure(index) << std::endl;
+//  std::cout << "alpha   at index " << index << " is " << std::sqrt(gamma*data.pressure(index)/data.density(index)) << std::endl;
+//  return std::sqrt(gamma*data.pressure(index)/data.density(index));
+  return gamma*data.R* total_temperature
 }
 
 double QuasiEuler::S(const double x){

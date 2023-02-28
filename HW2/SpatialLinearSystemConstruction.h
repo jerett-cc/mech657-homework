@@ -119,6 +119,7 @@ void SystemConstructionAndSolution::calculateResidualVector( StructuredGrid &dat
   std::cout << "calculating D for RHS\n";
   SystemConstructionAndSolution::constructRHS_D(data, problem);
   system_rhs = -1*problem.dt*system_rhs;
+  std::cout << "residual calculated" <<std::endl;
 }
 
 void SystemConstructionAndSolution::constructRHS_E(const StructuredGrid &data){
@@ -135,25 +136,32 @@ void SystemConstructionAndSolution::constructRHS_E(const StructuredGrid &data){
     ++node_index;
 
   }
+
+  std::cout<< "E calculated" <<std::endl;
+  std::cout << "E is " << system_rhs << std::endl;
 }
 
 void SystemConstructionAndSolution::constructRHS_D( StructuredGrid &data,  QuasiEuler &problem){
   std::vector<Eigen::Vector3d> tmp_h = data.Q;//we will overwrite this
   std::vector<Eigen::Vector3d> tmp_l = data.Q;
 
-  for(int i = data.buffer_size-1; i<data.stop_iteration_index+1; ++i)
+  for(int i = data.buffer_size; i<data.stop_iteration_index; ++i)
   {
+    std::cout << "index " << i << std::endl;
     tmp_h[i] = SystemConstructionAndSolution::highOrderDifferencing(data, problem, i);
     tmp_l[i] = SystemConstructionAndSolution::lowOrderDifferencing(data, problem, i);
   }
   int node_index = data.buffer_size;
   for(int i = 0; i < data.num_node*data.num_components; i+=data.num_components)
   {
+    std::cout << "node " << node_index << std::endl;
     system_rhs(i) -= 1/data.dx * (tmp_l[node_index](0) - tmp_l[node_index](0)) - 1/data.dx *(tmp_h[node_index](0) - tmp_h[node_index](0));
     system_rhs(i+1) -= 1/data.dx * (tmp_l[node_index](1) - tmp_l[node_index](1)) - 1/data.dx *(tmp_h[node_index](1) - tmp_h[node_index](1));
-    system_rhs(i+2) -= 1/data.dx * (tmp_l[node_index](0) - tmp_l[node_index](2)) - 1/data.dx *(tmp_h[node_index](2) - tmp_h[node_index](2));
+    system_rhs(i+2) -= 1/data.dx * (tmp_l[node_index](2) - tmp_l[node_index](2)) - 1/data.dx *(tmp_h[node_index](2) - tmp_h[node_index](2));
     ++node_index;
   }
+
+  std::cout << "E-Dx is " <<system_rhs << std::endl;
 }
 
 //should return the value of e^2 (|u_i| + a_i)|Delta U_i

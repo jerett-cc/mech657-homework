@@ -5,12 +5,13 @@
 #include <cmath>
 #include <iostream>
 #include "../Eigen/Dense"
+#include "../Eigen/IterativeLinearSolvers"
 
 /*TODO:
  *    +++1. write conversion functions
  * 		2. add printing functionality for results
- * 		3. add extrapolation functions for filling values ad the padded boundaries (linear??)
- * 		4. calculate the RHS dissipation, using averaging the matrix values A
+ * 		+++3. add extrapolation functions for filling values ad the padded boundaries (linear??)
+ * 		+++4. calculate the RHS dissipation, using averaging the matrix values A
  * 		5. change artificial dissipation numbers for the problems
  * 			i. subsonic kappa2 = 0, kappa4 = 0.02
  * 			ii. transonic and shock kappa2 = 0.5, kappa4 = 0.02
@@ -18,7 +19,7 @@
  * 			iv. calculate a timestep from equation 4.138 based on a courant number (of about 2?)
  * 		6. add a calculation of numerical error? need to incorporate the other code to calculate exact solutions
  * 			i. use equation 4.176 from book
- * 		7. figure out initial conditions (state at the inflow?
+ * 		+++7. figure out initial conditions (state at the inflow?
  * 		8. calculate a courant number using this limits the time step for the shock problem
  * 			i. u = 300m/s, a = 315m/s
  */
@@ -33,7 +34,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_cells = 2;
+	int num_cells = 4;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -103,20 +104,27 @@ int main(){
 
 		solver.calculateDissipationMatrix(grid_p1, euler_problem);
 
-//		std::cout<< solver.dense_system_matrix << std::endl;
+		std::cout<< solver.dense_system_matrix << std::endl;
 
 		std::cout << "testing update quantities " << std::endl;
 		euler_problem.updatePhysicalQuantities(grid_p1);
 //		grid_p1.clearUpdates();
-		std::cout << "mach is: \n" << grid_p1.mach << std::endl;
-		std::cout << "density is: \n" << grid_p1.density << std::endl;
-		std::cout << "pressure is: \n" << grid_p1.pressure << std::endl;
+//		std::cout << "mach is: \n" << grid_p1.mach << std::endl;
+//		std::cout << "density is: \n" << grid_p1.density << std::endl;
+//		std::cout << "pressure is: \n" << grid_p1.pressure << std::endl;
 
-//		std::cout << "testing rhs construction " << std::endl;
-//		solver.calculateResidualVector(grid_p1, euler_problem);
-//
-//		std::cout << "residual vector:\n" << solver.system_rhs << std::endl;
+		std::cout << "testing rhs construction " << std::endl;
+		solver.calculateResidualVector(grid_p1, euler_problem);
 
+		std::cout << "residual vector:\n" << solver.system_rhs << std::endl;
+
+
+		Eigen::BiCGSTAB<Eigen::MatrixXd> solv;
+
+		solv.compute(solver.dense_system_matrix);
+		Eigen::VectorXd solution = solv.solve(solver.system_rhs);
+
+		std::cout<< "solution for first time step\n" << solution << std::endl;
 
 
 
