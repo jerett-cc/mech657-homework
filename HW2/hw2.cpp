@@ -40,6 +40,7 @@ int main(){
 	double S_star_1 = 0.8;
 	double total_temperature_1 = 300;
 	double total_inlet_pressure_1 = 1e5;
+	std::cout << total_inlet_pressure_1 << std::endl;
 
 	//problem 2 additional parameters
 	double shock_location = 7.;
@@ -63,68 +64,51 @@ int main(){
 		//set up test Q
 		std::cout << "setting initial condition " << std::endl;
 		euler_problem.setInitialCondition(grid_p1);
-		std::cout << "q in middle is\n" << grid_p1.Q[4] << std::endl;
-
-//		Eigen::VectorXd test((dimension+2)*(num_cells+1));
-//		for (int i=0; i<test.size(); ++i)
-//		{
-//			test(i) = i;
-//		}
-		//setup a random Q
-//		for (int i=0; i<grid_p1.Q.size(); ++i)
-//		{
-//  //		std::cout << "size q is " << grid_p1.Q.size() <<std::endl;
-//  //		std::cout << "i is " << i <<std::endl;
-//      Eigen::Vector3d a = Eigen::Vector3d::Random();
-//      a(0) = total_inlet_pressure_1 / (R*total_temperature_1);
-//      a(1) = 0.1;
-//      a(2) = 0.1;
-//      grid_p1.Q[i] += a;
-//		}
-//		std::cout << "size q is now " << grid_p1.Q.size() <<std::endl;
-
-		SystemConstructionAndSolution solver(grid_p1);
-//		//testing, clean up later.
-		Eigen::MatrixXd temp;
-		std::cout << "testing local inviscid flux calculation "<< std::endl;
-		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
-		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
-
-		std::cout << "Testing pressure sensor " << std::endl;
-		euler_problem.pressureSensor(grid_p1);
-		std::cout <<  grid_p1.sensor_contributions << std::endl;
-
-		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
-
-		std::cout << "Testing spatial matrix construction "<< std::endl;
-
-		solver.calculateSpatialMatrix(grid_p1, euler_problem);
-
-		std::cout << "testing dissipation matrix " << std::endl;
-
-		solver.calculateDissipationMatrix(grid_p1, euler_problem);
-
-		std::cout<< solver.dense_system_matrix << std::endl;
+		std::cout << "done " << std::endl;
+//		std::cout << "q in middle is\n" << grid_p1.Q[4] << std::endl;
 
 		std::cout << "testing update quantities " << std::endl;
 		euler_problem.updatePhysicalQuantities(grid_p1);
-//		grid_p1.clearUpdates();
-//		std::cout << "mach is: \n" << grid_p1.mach << std::endl;
-//		std::cout << "density is: \n" << grid_p1.density << std::endl;
-//		std::cout << "pressure is: \n" << grid_p1.pressure << std::endl;
-
-		std::cout << "testing rhs construction " << std::endl;
-		solver.calculateResidualVector(grid_p1, euler_problem);
-
-		std::cout << "residual vector:\n" << solver.system_rhs << std::endl;
-
-
-		Eigen::BiCGSTAB<Eigen::MatrixXd> solv;
-
-		solv.compute(solver.dense_system_matrix);
-		Eigen::VectorXd solution = solv.solve(solver.system_rhs);
-
-		std::cout<< "solution for first time step\n" << solution << std::endl;
+    std::cout << "mach is: \n" << grid_p1.mach << std::endl;
+    std::cout << "density is: \n" << grid_p1.density << std::endl;
+    std::cout << "pressure is: \n" << grid_p1.pressure << std::endl;
+//
+		std::cout << "Problem here " << std::endl;
+		SystemConstructionAndSolution solver(grid_p1);
+////		//testing, clean up later.
+////		Eigen::MatrixXd temp;
+////		std::cout << "testing local inviscid flux calculation "<< std::endl;
+////		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 2);
+////		temp = euler_problem.calculateLocalInviscidFluxJacobian(grid_p1, 1);
+//
+////		std::cout << "Testing pressure sensor " << std::endl;
+////		euler_problem.pressureSensor(grid_p1);
+////		std::cout <<  grid_p1.sensor_contributions << std::endl;
+//
+////		Eigen::MatrixXd A(euler_problem.local_matrix_size, euler_problem.local_matrix_size);
+////
+//		std::cout << "Testing spatial matrix construction "<< std::endl;
+//
+//		solver.calculateSpatialMatrix(grid_p1, euler_problem);
+////
+////		std::cout << "testing dissipation matrix " << std::endl;
+////
+////		solver.calculateDissipationMatrix(grid_p1, euler_problem);
+////
+////		std::cout<< solver.dense_system_matrix << std::endl;
+//
+//		std::cout << "testing rhs construction " << std::endl;
+//		solver.calculateResidualVector(grid_p1, euler_problem);
+//
+//		std::cout << "residual vector:\n" << solver.system_rhs << std::endl;
+//
+//
+//		Eigen::BiCGSTAB<Eigen::MatrixXd> solv;
+//
+//		solv.compute(solver.dense_system_matrix);
+//		Eigen::VectorXd solution = solv.solve(solver.system_rhs);
+//
+//		std::cout<< "solution for first time step\n" << solution << std::endl;
 
 
 

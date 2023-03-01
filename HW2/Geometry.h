@@ -52,9 +52,12 @@ class StructuredGrid{
 			};
 
 		int get_size()const ;
+		int get_system_size() const;
 		int estimateNumberNonzeroElements();
 		void clearUpdates();
-		void interpolateBoundary();
+		void interpolateBoundaryE();
+		void interpolateBoundaryQ();
+		void interpolateBoundaryQuantities();
 
 		double L, R;
 		int numCell;
@@ -64,6 +67,10 @@ class StructuredGrid{
 
 int StructuredGrid::get_size() const{
 	return mesh.size()*(problem_dimension+2);
+}
+
+int StructuredGrid::get_system_size() const{
+  return (mesh.size()-buffer_size-2) *(problem_dimension + 2);
 }
 
 //TODO: decide if this function is defunct
@@ -81,7 +88,23 @@ void StructuredGrid::clearUpdates(){
 }
 
 //interpolates the boundary values to use for our stencil
-void StructuredGrid::interpolateBoundary(){
+void StructuredGrid::interpolateBoundaryE(){
+  for (int i = buffer_size-1; i>-1; --i)
+    {
+//    std::cout <<"boundary index: " <<  i<< std::endl;
+    Eigen::Vector3d left_slope_E = (E[i + 2] - E[i + 1])/dx;
+//    std::cout << "Left slope \n" << left_slope<< std::endl;
+    Eigen::Vector3d right_slope_E = (E[E.size()-1-i-1] - E[E.size()-1-i-2])/dx;
+//    std::cout << "R slope \n" << right_slope<< std::endl;
+    E[i] = E[i+1] - left_slope_E*dx;
+//    std::cout << "left value \n" << Q[i]<< std::endl;
+    E[E.size()-1-i] = E[E.size()-1-i-1] + right_slope_E*dx;
+//    std::cout << "right value \n" << Q[Q.size()-1-i]<< std::endl;
+    }
+
+}
+
+void StructuredGrid::interpolateBoundaryQ(){
   for (int i = buffer_size-1; i>-1; --i)
   {
 //    std::cout <<"boundary index: " <<  i<< std::endl;
@@ -95,12 +118,42 @@ void StructuredGrid::interpolateBoundary(){
 //    std::cout << "right value \n" << Q[Q.size()-1-i]<< std::endl;
 
   }
+//  std::cout<< "----------------------------" << std::endl;
+//  boundary_has_been_updated = 1;
 
-  std::cout<< "----------------------------" << std::endl;
-  boundary_has_been_updated = 1;
-
-  std::cout << Q[0] << Q[1] << std::endl;
+//  std::cout << Q[0] << Q[1] << std::endl;
 }
+
+void StructuredGrid::interpolateBoundaryQuantities(){
+  //interpolate pressure
+  for (int i = buffer_size-1; i>-1; --i)
+    {
+    double left_slope_P = (pressure(i + 2) - pressure(i + 1))/dx;
+    double right_slope_P = (pressure(pressure.size()-1-i-1) - pressure(pressure.size()-1-i-2))/dx;
+    pressure(i) = pressure(i+1) - left_slope_P*dx;
+    pressure(pressure.size()-1-i) = pressure(pressure.size()-1-i-1) + right_slope_P*dx;
+    }
+
+  //interpolate density
+  for (int i = buffer_size-1; i>-1; --i)
+  {
+    double left_slope_D = (density(i + 2) - density(i + 1))/dx;
+    double right_slope_D = (density(density.size()-1-i-1) - density(density.size()-1-i-2))/dx;
+    density(i) = density(i+1) - left_slope_D*dx;
+    density(density.size()-1-i) = density(density.size()-1-i-1) + right_slope_D*dx;
+  }
+  //interpolate mach
+  for (int i = buffer_size-1; i>-1; --i)
+  {
+    double left_slope_M = (mach(i + 2) - mach(i + 1))/dx;
+    double right_slope_M = (mach(mach.size()-1-i-1) - mach(mach.size()-1-i-2))/dx;
+    mach(i) = mach(i+1) - left_slope_M*dx;
+    mach(mach.size()-1-i) = mach(mach.size()-1-i-1) + right_slope_M*dx;
+  }
+    //todo add temp?
+}
+
+
 
 
 

@@ -58,7 +58,8 @@ class QuasiEuler{
 			  R(R_constant)
 		{
 		  CFL = .9;
-		  dt = mesh.dx /(300. + 315.);//todo adapt the courant number??
+//		  dt = mesh.dx /(300. + 315.);//todo adapt the courant number??
+		  dt = 0.5;
 		                    //this is for a fluid velocity of 0.5
 		  initial_pressure_left = -1;//TODO remove these...
 		  initial_pressure_right = -1;
@@ -75,7 +76,7 @@ void QuasiEuler::pressureSensor(StructuredGrid &data){
 	assert(data.sensor_contributions.cols() == 2 && "we only have two parameters for shock sensing, use only two columns");
 	assert(data.mesh.size()==data.sensor_contributions.rows());
 
-	for (int i = data.buffer_size; i < data.mesh.size()-data.buffer_size; ++i)//loop through all points on mesh
+	for (int i = data.buffer_size; i < data.stop_iteration_index; ++i)//loop through all points on mesh
 	{
 		double topi = data.pressure(i+1) - 2*data.pressure(i) + data.pressure(i-1);
 		double bottomi = data.pressure(i+1) + 2*data.pressure(i) + data.pressure(i-1);
@@ -91,40 +92,61 @@ void QuasiEuler::pressureSensor(StructuredGrid &data){
 		double GAMMA_i_next = std::abs(topi_next/bottomi_next);
 		double GAMMA_i_prev = std::abs(topi_prev/bottomi_prev);
 
-		data.sensor_contributions(i,0) = kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
-		data.sensor_contributions(i,1) = kappa4*std::max(0., kappa4 - data.sensor_contributions(i,0));
+		data.sensor_contributions(i-data.buffer_size,0) = kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
+//		std::cout << "index i = "  << i << std::endl << kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev)) << std::endl;
+		data.sensor_contributions(i-data.buffer_size,1) = kappa4*std::max(0., kappa4 - data.sensor_contributions(i-data.buffer_size,0));
 
 	}
 }
 
 void QuasiEuler::setInitialCondition(StructuredGrid &data){
-  double density = inlet_pressure/ (R* total_temperature);
 
-  double mach = 0.5;
+  double mach = 0.1;
 
   while(std::fabs(nonlinearFunctionToSolveP1(mach, data))>1e-13)
   {
     mach = mach -nonlinearFunctionToSolveP1(mach, data)/nonlinearFunctionToSolveP1Deriv(mach, data);
   }
+  double inside = 1 + (gamma-1)/(2)*std::pow(mach,2);
+  double pressure = inlet_pressure * std::pow(inside,-gamma/(gamma-1));
+  double temperature = total_temperature /inside;
+  double dens =  pressure / (R* temperature);
+  double velocity = std::sqrt(gamma*pressure/dens) * mach ;
+  double a = std::pow(gamma*pressure/dens, 0.5);
+  double a2 = std::sqrt(gamma*R* temperature);
+  double momentum = velocity * dens;
+  double epsilon = temperature * R / (gamma-1);
+  double energy = (temperature * R / (gamma-1) + std::pow(velocity, 2)/2);
+  double energy_momentum = dens * energy;
 
-  double velocity = std::sqrt(gamma*inlet_pressure/density) * mach;
-  double momentum = velocity * density;
-  double energy = density * total_temperature * R / (gamma-1);
-  double energy_momentum = density * energy;
+  std::cout << "density =       " << dens << std::endl
+            << "sound speed is  "<< a << std::endl
+            << "sound speed2 is "<< a2 << std::endl
+            << "pressure    is  "<< pressure << std::endl
+            << "temperature is  "<< temperature << std::endl
+            << "velocity is =   " << velocity << std::endl
+            << "momentum =      " << momentum << std::endl
+            << "energy moment=  " << energy_momentum/dens << std::endl
+            << "mach =          " << mach << std::endl
+            << "R =             " << R << std::endl
+            << "epsilon =       " << epsilon << std::endl
+            << "epsilon +vel^2= " << epsilon + 0.5 * velocity* velocity << std::endl;
 
-  std::cout << "density = " << density << std::endl
-            << "velocity is = " << velocity << std::endl
-            << "momentum = " << momentum << std::endl
-            << "energy momentum = " << energy_momentum << std::endl
-            << "mach = " << mach << std::endl;
+
   assert(data.Q.size() - data.buffer_size == data.stop_iteration_index && "you are attempting to index outside of the range of Q");
   for (int i = data.buffer_size; i <data.stop_iteration_index; ++i)
   {
-    data.Q[i](0) = density;
-    data.Q[i](1) = momentum;
-    data.Q[i](2) = energy_momentum;
+    data.Q[i](0) = dens * S(data.mesh(i-data.buffer_size));
+    data.Q[i](1) = momentum * S(data.mesh(i-data.buffer_size));
+    data.Q[i](2) = energy_momentum * S(data.mesh(i-data.buffer_size));
+    std::cout << "S at index " << i << " is \n" << S(data.mesh(i-data.buffer_size))<< std::endl;;
   }
 
+  std::cout << "Initial Q is \n";
+  for (int i = 0; i<data.Q.size(); ++i)
+  {
+    std::cout << data.Q[i] <<std::endl;
+  }
 }
 
 Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredGrid & data,
@@ -152,20 +174,28 @@ Eigen::MatrixXd QuasiEuler::calculateLocalInviscidFluxJacobian(const StructuredG
 }
 
 void QuasiEuler::updatePhysicalQuantities(StructuredGrid &data){
-  data.interpolateBoundary();
+  data.interpolateBoundaryQ();
+  std::cout << "Boundary interpolated for Q" << std::endl;
   updateDensity(data);
+  std::cout << "Density Updated" << std::endl;
   updatePressure(data);
+  std::cout << "Pressure Updated" << std::endl;
   updateMach(data);
+  std::cout << "Mach updated" << std::endl;
   updateE(data);
+  std::cout << "Update E" << std::endl;
+  data.interpolateBoundaryE();
+  std::cout << "Update boundary values for quantities " << std::endl;
+  data.interpolateBoundaryQuantities();
 }
 
 void QuasiEuler::updatePressure(StructuredGrid & data){
 	assert(data.Q_has_been_updated && "you need to update Q before updating pressure");
-	for (int i = 0; i < data.Q.size(); ++i)
+	for (int i = data.buffer_size; i < data.Q.size()-data.buffer_size; ++i)
 	{
-		double q1 = data.Q[i](0);
-		double q2 = data.Q[i](1);
-		double q3 = data.Q[i](2);
+    double q1 = data.Q[i](0)/S(data.mesh(i-data.buffer_size));
+    double q2 = data.Q[i](1)/S(data.mesh(i-data.buffer_size));
+    double q3 = data.Q[i](2)/S(data.mesh(i-data.buffer_size));
 		data.pressure(i) = (gamma-1)*(q3/q1 - 1/(2*q1)*std::pow(q2,2));
 	}
 	data.Pressure_has_been_updated = 1;
@@ -178,26 +208,25 @@ void QuasiEuler::updateMach(StructuredGrid & data){
 	       && "you need to update pressure before updating the mach");
 	assert(data.Density_has_been_updated
 	       && "you need to update density before updating the mach");
-	for (int i = 0; i < data.Q.size(); ++i)
+	for (int i = data.buffer_size; i < data.Q.size()-data.buffer_size; ++i)
 	{
-	  double q1 = data.Q[i](0);
-	  std::cout << "q1 is" << q1 << std::endl;
-	  double q2 = data.Q[i](1);
-	  std::cout << "q2 is" << q2 << std::endl;
-	  double q3 = data.Q[i](2);
-	  std::cout << "q3 is" << q3 << std::endl;
+    double q1 = data.Q[i](0)/S(data.mesh(i-data.buffer_size));
+    double q2 = data.Q[i](1)/S(data.mesh(i-data.buffer_size));
+    double q3 = data.Q[i](2)/S(data.mesh(i-data.buffer_size));
+//	  std::cout << "q3 is" << q3 << std::endl;
 		data.mach(i) = (q2/q1)/(QuasiEuler::calculateSoundSpeed(data, i));
 	}
 }
 
 void QuasiEuler::updateDensity(StructuredGrid & data){
 	assert(data.Q_has_been_updated && "you need to update Q before updating density");
-	for (int i = 0; i < data.Q.size(); ++i)
+	for (int i = data.buffer_size; i < data.Q.size()-data.buffer_size; ++i)
 	{
-	  double q1 = data.Q[i](0);
-	  double q2 = data.Q[i](1);
-	  double q3 = data.Q[i](2);
-		data.density(i) = q1;
+    double q1 = data.Q[i](0)/S(data.mesh(i-data.buffer_size));
+//    std::cout << "density index is " << i << "\n and mesh index is " << i-data.buffer_size<< std::endl;
+    double q2 = data.Q[i](1)/S(data.mesh(i-data.buffer_size));
+    double q3 = data.Q[i](2)/S(data.mesh(i-data.buffer_size));
+    data.density(i) = q1;
 	}
 	data.Density_has_been_updated = 1;
 }
@@ -213,9 +242,9 @@ void QuasiEuler::updateTemp(StructuredGrid & data){
 
   for (int i = 0; i < data.Q.size(); ++i)
   {
-    double q1 = data.Q[i](0);
-    double q2 = data.Q[i](1);
-    double q3 = data.Q[i](2);
+    double q1 = data.Q[i](0)/S(data.mesh(i-data.buffer_size));
+    double q2 = data.Q[i](1)/S(data.mesh(i-data.buffer_size));
+    double q3 = data.Q[i](2)/S(data.mesh(i-data.buffer_size));
 //    data.temperature(i) = data.pressure(i)/(data);
   }
 }
@@ -223,24 +252,33 @@ void QuasiEuler::updateTemp(StructuredGrid & data){
 void QuasiEuler::updateE(StructuredGrid &data){
   assert(data.Pressure_has_been_updated
          && "need pressure to calculate E");
-  for (int i = 0; i < data.E.size(); ++i)
+  int node_index = 0;
+  for (int i = data.buffer_size; i < data.E.size()-data.buffer_size; ++i)
     {
       double q1 = data.Q[i](0);
       double q2 = data.Q[i](1);
       double q3 = data.Q[i](2);
       data.E[i](0) = q2;
-      data.E[i](1) = q2 + data.pressure(i);
-      data.E[i](1) = q3 + data.density(i)*data.pressure(i) - data.pressure(i);
+      data.E[i](1) = (gamma-1)*q3 + (3-gamma)/(2)*q2*q2/q1;
+//      data.E[i](1) = (q2 + data.pressure(i));
+      data.E[i](2) = gamma*q3*q2/q1 - (gamma-1)/2*q2*q2*q2/(q1*q1);
+//      data.E[i](2) = (q3 + data.density(i)*data.pressure(i) - data.pressure(i));
+    }
+  std::cout << "Initial E is \n";
+    for (int i = 0; i<data.E.size(); ++i)
+    {
+      std::cout << data.E[i] << std::endl;
     }
   data.E_has_been_updated = 1;
 }
 
 double QuasiEuler::calculateSoundSpeed(const StructuredGrid &data, const int index) const{
-//  std::cout << "density at index " << index << " is " << data.density(index) << std::endl;
-//  std::cout << "pressur at index " << index << " is " << data.pressure(index) << std::endl;
-//  std::cout << "alpha   at index " << index << " is " << std::sqrt(gamma*data.pressure(index)/data.density(index)) << std::endl;
-//  return std::sqrt(gamma*data.pressure(index)/data.density(index));
-  return gamma*data.R* total_temperature
+  if (index == 7)
+  {std::cout << "density at index " << index << " is " << data.density(index) << std::endl;
+    std::cout << "pressur at index " << index << " is " << data.pressure(index) << std::endl;
+    std::cout << "alpha   at index " << index << " is " << std::sqrt(gamma*data.pressure(index)/data.density(index)) << std::endl;
+  }
+  return std::sqrt(gamma*data.pressure(index)/data.density(index));
 }
 
 double QuasiEuler::S(const double x){
@@ -260,13 +298,13 @@ double QuasiEuler::nonlinearFunctionToSolveP1(double M,const StructuredGrid &dat
   double inside = 2/(gamma +1) + (gamma - 1)/(gamma+1)*pow(M,2);
   double exponent = (gamma + 1)/(2*(gamma-1));
   assert(fabs(exponent - 3)<1e-13);
-  return pow(inside, exponent) - (S(data.mesh(data.buffer_size))*M)/(s_star);
+  return pow(inside, exponent) - (S(data.L)*M)/(s_star);
 }
 
 double QuasiEuler::nonlinearFunctionToSolveP1Deriv(double M,const StructuredGrid &data){
   double inside = 2/(gamma +1) + (gamma - 1)/(gamma+1)*pow(M,2);
   double exponent = (gamma + 1)/(2*(gamma-1));
-  return M*pow(inside, exponent-1) - (S(data.mesh(data.buffer_size)))/(s_star);
+  return M*pow(inside, exponent-1) - (S(data.L))/(s_star);
 }
 
 
