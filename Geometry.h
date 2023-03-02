@@ -57,6 +57,8 @@ class ProblemData{
                              const double R,
                              const double s_star);
     Eigen::VectorXd getQVect();
+    double soundSpeed(const int position);
+    Eigen::Vector3d Q(const int idx);
     void printQuantities(std::string f_name);
 
     ProblemData(int number_nodes, int number_ghost, double interval_l, double interval_r, parameters param)
@@ -80,9 +82,7 @@ class ProblemData{
   private:
     double Left, Right;
     int highest_index, problem_size, R_index, L_index;
-    double soundSpeed(const int position);
     double S(const double x);
-    Eigen::Vector3d Q(const int idx);
     double X(const int idx);
     double nonlinearFunctionToSolveP1(double M,double s_star, double gamma);
     double nonlinearFunctionToSolveP1Deriv(double M,double s_star, double gamma);
@@ -182,9 +182,9 @@ Eigen::VectorXd ProblemData::getQVect(){
  */
 Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
   Eigen::Vector3d E = Eigen::Vector3d::Zero();
-    double q1 = q[idx](0);
-    double q2 = q[idx](1);
-    double q3 = q[idx](2);
+    double q1 = Q(idx)(0);
+    double q2 = Q(idx)(1);
+    double q3 = Q(idx)(2);
     E(0) = boundary_Ql(1);
     E(1) = std::pow(q2,2)/q1 + Pressure(idx)*S(X(idx));
     E(2) = q2*q3/q1 + Pressure(idx)*S(Left)* boundary_Ql(1)/boundary_Ql(0);

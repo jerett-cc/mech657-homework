@@ -30,7 +30,7 @@ class Solver{
       //this could introduce bugs. be aware?
 //      std::cout << "Look here "  <<  data->getQVect().size() << std::endl;
       A = Eigen::MatrixXd::Identity(data->getQVect().size(), data->getQVect().size());
-      b = Eigen::VectorXd::Identity(data->getQVect().size(), 1);
+      b = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
       assert(A.cols() == data->q.size()* 3);//todo remove this assertion, it will not be true in more than one dim
     }
 
@@ -127,7 +127,7 @@ void Solver::calculateAndAddL(){
   {
     result.col(i - 6) = stencil_high_order.col(i);
   }
-  result = problem->dt * result;
+  result = -problem->dt * result;
 
 //    std::cout << result << "\n stencil from e4 and e2 contribution ^^" <<std::endl;
 
@@ -135,28 +135,52 @@ void Solver::calculateAndAddL(){
 
   std::cout << "A is now " << std::endl << A << std::endl;
 }
-
+/**
+ * this function should calculate dxE for each node and place that in the vector b
+ * todo test this.
+ */
 void Solver::calculateDe(){
 
+  int j = 0;
   for(int i = 0; i<data->q.size(); ++i)
   {
-
+    Eigen::Vector3d Ei= data->E(i+1) - data->E(i-1);
+//    std::cout << Ei << std::endl;
+    double e1 = Ei(0);
+    double e2 = Ei(1);
+    double e3 = Ei(2);
+    b(j) = e1/(2*data->dx);
+    b(j+1) = e2/(2*data->dx);
+    b(j+2) = e3/(2*data->dx);
+    j+=3;
   }
-
+//  std::cout << "dex is " << std::endl << b;
 }
 
+/**
+ * todo this....
+ */
+void Solver::calcuateDx(){
+//  std::vector<Eigen::Vector3d> tmp_h = data->q;//we will overwrite this could introduce bugs
+//  std::vector<Eigen::Vector3d> tmp_l = data->q;//these are indermediate
+//
+//  for(int i = 0; i<data->q.size(); ++i)//loop through all nodes, this is before the last backward differencing.
+//  {
+//    std::cout << "index " << i << std::endl;
+//    tmp_h[i] = problem->highOrderDifferencing(i);
+//    tmp_l[i] = problem->lowOrderDifferencing(i);
+//  }
+//
+//
+//  for(int i = 0; i < data->q.size()*3; ++i )//loop through all components of b
+//  {
+//    b(i) =
+//  }
+//
+//
+//  std::cout << "E-Dx is " <<system_rhs << std::endl;
 
-
-
-
-
-
-
-
-
-
-
-
+}
 
 
 

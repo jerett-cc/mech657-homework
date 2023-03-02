@@ -101,9 +101,9 @@ int main(){
   std::cout << "testing setup A " << std::endl;
   solver.setup_A();
 
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << "testing setup b " << std::endl;
-//  solver.setup_A();
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing setup b " << std::endl;
+  solver.calculateDe();
 
 
 

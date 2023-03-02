@@ -45,8 +45,8 @@ class QuasiEuler{
 
     Eigen::Matrix3d calculateLocalFluxJacobian(const int idx);
 
-    Eigen::Vector3d lowOrderDifferencing(const int idx);
-    Eigen::Vector3d highOrderDifferencing(const int idx);
+    Eigen::Vector3d lowOrderDifferencing(const int idx);//todo
+    Eigen::Vector3d highOrderDifferencing(const int idx);//todo
 
 
 };
@@ -130,7 +130,23 @@ Eigen::Matrix3d QuasiEuler::calculateLocalFluxJacobian(const int idx){
   return local_flux;
 }
 
+Eigen::Vector3d QuasiEuler::lowOrderDifferencing(const int idx){
+  double u_1 = data->Velocity(idx+1);
+  double u_0 = data->Velocity(idx);
+  double a_1 = data->soundSpeed(idx+1);
+  double a_0 = data->soundSpeed(idx);
+  return (sensor_contributions(idx + 1)*(std::abs(u_1) + a_1) + sensor_contributions(idx)*(std::abs(u_0) + a_0))/2
+      * (data->Q(idx+1) - data->Q(idx));
+}
 
+Eigen::Vector3d QuasiEuler::highOrderDifferencing(const int idx){
+  double u_1 = data->Velocity(idx+1);
+  double u_0 = data->Velocity(idx);
+  double a_1 = data->soundSpeed(idx+1);
+  double a_0 = data->soundSpeed(idx);
+  return (sensor_contributions(idx + 1)*(std::abs(u_1) + a_1) + sensor_contributions(idx)*(std::abs(u_0) + a_0))/2
+      * (data->Q(idx+2) - 3* data->Q(idx+1) + 3*data->Q(idx) - data->Q(idx-1));
+}
 
 
 
