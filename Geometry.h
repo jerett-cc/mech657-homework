@@ -153,6 +153,7 @@ Eigen::Vector3d& ProblemData::operator[](const int idx){
  * todo test this.
  */
 void ProblemData::operator+=(const std::vector<Eigen::Vector3d> &a_vec){
+  std::cout << "made it into +=\n";
   assert(a_vec.size()==q.size() && "trying to add a vector of different size to q");
   for(int i = 0; i<q.size(); ++i)
   {
@@ -185,9 +186,9 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
     double q1 = Q(idx)(0);
     double q2 = Q(idx)(1);
     double q3 = Q(idx)(2);
-    E(0) = boundary_Ql(1);
-    E(1) = std::pow(q2,2)/q1 + Pressure(idx)*S(X(idx));
-    E(2) = q2*q3/q1 + Pressure(idx)*S(Left)* boundary_Ql(1)/boundary_Ql(0);
+    E(0) = q2;
+    E(1) = (parameter.gamma - 1.0)*q3 + (3-parameter.gamma)/2*q2*q2/q1;
+    E(2) = parameter.gamma * q3*q2/q1 -(parameter.gamma - 1)/2 *q2*q2*q2/(q1*q1);
     return E;
 }
 /**
@@ -195,9 +196,9 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  */
 double ProblemData::Pressure(const int idx){
 //  std::cout << "++++" << std::endl
-//            << "x[-1] is " << std::endl
-//            << X(-1) << std::endl
-//            <<  "S(X[-1]) is " << std::endl
+//            << "x[idx] is " << std::endl
+//            << X(idx) << std::endl
+//            <<  "S(X[idx]) is " << std::endl
 //            << S(X(idx)) << std::endl;
   double q1 = Q(idx)(0)/(S(X(idx)));
   double q2 = Q(idx)(1)/(S(X(idx)));
@@ -269,7 +270,14 @@ double ProblemData::X(const int idx){
 //  std::cout << outOfBounds(idx) <<std::endl;
   if (outOfBounds(idx))
   {
-    return dx*(idx+1) + Left;
+    if (idx<0)
+    {
+      return Left;
+    }
+    else
+    {
+      return Right-dx;
+    }
   }
   else
   {
@@ -423,7 +431,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 <<  " " << X(i)  << ", " << Pressure(i) << std::endl;
+    a_file3 <<  " " << X(i)  << ", " << Pressure(i) <<", " << i <<std::endl;
   }
   a_file3.close();
 

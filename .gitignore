@@ -3,6 +3,8 @@
 .project
 .settings
 /Eigen
+.gitignore
 
 #ignore extensions
 *.out
+*.csv

@@ -58,8 +58,8 @@ class QuasiEuler{
  */
 void QuasiEuler::calculateSensorContributions(){
 
-  double kappa2 = 1./2.;
-  double kappa4 = 1./50.;
+  double kappa2 = 0.5;
+  double kappa4 = 0.02;
 
 
   assert(data->q.size()==sensor_contributions.rows());
@@ -92,9 +92,9 @@ void QuasiEuler::calculateSensorContributions(){
     double GAMMA_i = std::abs(topi/bottomi);
     double GAMMA_i_next = std::abs(topi_next/bottomi_next);
     double GAMMA_i_prev = std::abs(topi_prev/bottomi_prev);
-
-    sensor_contributions(i,0) = kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
-    sensor_contributions(i,1) = kappa4*std::max(0., kappa4 - sensor_contributions(i,0));
+    double epsilon2 =  kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
+    sensor_contributions(i,0) = epsilon2;
+    sensor_contributions(i,1) = std::max(0., kappa4 - epsilon2);
 
   }
 
@@ -135,8 +135,10 @@ Eigen::Vector3d QuasiEuler::lowOrderDifferencing(const int idx){
   double u_0 = data->Velocity(idx);
   double a_1 = data->soundSpeed(idx+1);
   double a_0 = data->soundSpeed(idx);
-  return (sensor_contributions(idx + 1)*(std::abs(u_1) + a_1) + sensor_contributions(idx)*(std::abs(u_0) + a_0))/2
-      * (data->Q(idx+1) - data->Q(idx));
+  double sigma_1 = sensor_contributions(idx + 1)*(std::abs(u_1) + a_1);
+  double sigma_0 = sensor_contributions(idx)*(std::abs(u_0) + a_0);
+
+  return (sigma_1 + sigma_0)/2 * (data->Q(idx+1) - data->Q(idx));
 }
 
 Eigen::Vector3d QuasiEuler::highOrderDifferencing(const int idx){
@@ -144,8 +146,10 @@ Eigen::Vector3d QuasiEuler::highOrderDifferencing(const int idx){
   double u_0 = data->Velocity(idx);
   double a_1 = data->soundSpeed(idx+1);
   double a_0 = data->soundSpeed(idx);
-  return (sensor_contributions(idx + 1)*(std::abs(u_1) + a_1) + sensor_contributions(idx)*(std::abs(u_0) + a_0))/2
-      * (data->Q(idx+2) - 3* data->Q(idx+1) + 3*data->Q(idx) - data->Q(idx-1));
+  double sigma_1 = sensor_contributions(idx + 1)*(std::abs(u_1) + a_1);
+  double sigma_0 = sensor_contributions(idx)*(std::abs(u_0) + a_0);
+
+  return (sigma_1 + sigma_0)/2 * (data->Q(idx+2) - 3* data->Q(idx+1) + 3*data->Q(idx) - data->Q(idx-1));
 }
 
 

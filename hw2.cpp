@@ -103,12 +103,34 @@ int main(){
 
   std::cout << "-----------------------------" << std::endl;
   std::cout << "testing setup b " << std::endl;
-  solver.calculateDe();
+  solver.calcDe();
+  solver.calcDx();
+
+  // solver.reinit();
 
 
+  //solve the system
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing solve system " << std::endl;
+  solver.solveSystem();
 
 
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "new q is" << std::endl;
+  std::cout << data1.getQVect() << std::endl;
 
+  data1.printQuantities("one step");
+
+  ///////////////////////////////////////////////////
+  // for (int i = 0; i<4;++i)                      //
+  // {                                             //
+  //   solver.setupSystem();                       //
+  //   solver.solveSystem();                       //
+  //   std::cout << "new q is" << std::endl;       //
+  //   std::cout << data1.getQVect() << std::endl; //
+  //   std::cout << "_______________"<< std::endl; //
+  // }                                             //
+  ///////////////////////////////////////////////////
 
 
 return 0;
