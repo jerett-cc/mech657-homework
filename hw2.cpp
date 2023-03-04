@@ -82,38 +82,40 @@ int main(){
 //  std::cout << "-----------------------------" << std::endl;
 //  std::cout << "testing get_Q " << std::endl;
 //  std::cout << data1.getQVect() << std::endl;
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing pressure at L endpoint match initial pressure?" << std::endl;
-  std::cout << data1.Pressure(-1) << std::endl;
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing pressure at L endpoint match initial pressure?" << std::endl;
+//  std::cout << data1.Pressure(-1) << std::endl;
 
-  data1.printQuantities("test_problem");
+  data1.printQuantities("initial_problem");
+//
+//  problem1.calculateSensorContributions();
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing pressure sensor, expect zero except maybe at end" << std::endl;
+//  std::cout << problem1.sensor_contributions << std::endl;
+//
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing local flux jacobian" << std::endl;
+//  std::cout << problem1.calculateLocalFluxJacobian(0) << std::endl;
 
-  problem1.calculateSensorContributions();
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing pressure sensor, expect zero except maybe at end" << std::endl;
-  std::cout << problem1.sensor_contributions << std::endl;
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing setup A " << std::endl;
+//  solver.setup_A();
 
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing local flux jacobian" << std::endl;
-  std::cout << problem1.calculateLocalFluxJacobian(0) << std::endl;
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing setup b " << std::endl;
+//  solver.calcDe();
+//  solver.calcDx();
 
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing setup A " << std::endl;
-  solver.setup_A();
-
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing setup b " << std::endl;
-  solver.calcDe();
-  solver.calcDx();
-
-  // solver.reinit();
+   solver.reinit();
 
 
   //solve the system
   std::cout << "-----------------------------" << std::endl;
   std::cout << "testing solve system " << std::endl;
+  problem1.calculateSensorContributions();
+  solver.setupSystem();
   solver.solveSystem();
-
+  solver.reinit();
 
   std::cout << "-----------------------------" << std::endl;
   std::cout << "new q is" << std::endl;
@@ -121,16 +123,31 @@ int main(){
 
   data1.printQuantities("one step");
 
-  ///////////////////////////////////////////////////
-  // for (int i = 0; i<4;++i)                      //
-  // {                                             //
-  //   solver.setupSystem();                       //
-  //   solver.solveSystem();                       //
-  //   std::cout << "new q is" << std::endl;       //
-  //   std::cout << data1.getQVect() << std::endl; //
-  //   std::cout << "_______________"<< std::endl; //
-  // }                                             //
-  ///////////////////////////////////////////////////
+
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing solve system step 2 " << std::endl;
+  problem1.calculateSensorContributions();
+  solver.setupSystem();
+  solver.solveSystem();
+  solver.reinit();
+//
+//
+//  std::cout << "------------Test 4 iterations----------------" << std::endl;
+//  std::cout << "new q at step 2 is" << std::endl;
+//  std::cout << data1.getQVect() << std::endl;
+//
+//  data1.printQuantities("two step");
+//
+//   for (int i = 0; i<4;++i)
+//   {
+//     problem1.calculateSensorContributions();
+//     solver.setupSystem();
+//     solver.solveSystem();
+//     std::cout << "new q is" << std::endl;
+//     std::cout << data1.getQVect() << std::endl;
+//     std::cout << "________Iteration over__________________________"<< std::endl;
+//     solver.reinit();
+//   }
 
 
 return 0;

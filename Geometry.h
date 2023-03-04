@@ -319,21 +319,21 @@ void ProblemData::setInitialCondition(const double gamma,
   double epsilon = temperature * R / (gamma-1);
   double energy = (temperature * R / (gamma-1) + std::pow(velocity, 2)/2);
   double energy_momentum = dens * energy;
-  std::cout << "density = " << dens << std::endl
+//  std::cout << "density = " << dens << std::endl
 //            << "sound speed is "<< a << std::endl
 //            << "sound speed2 is "<< a2 << std::endl
-            << "pressure is "<< pressure << std::endl
+//            << "pressure is "<< pressure << std::endl
 //            << "temperature is "<< temperature << std::endl
-            << "velocity is = " << velocity << std::endl
+//            << "velocity is = " << velocity << std::endl
 //            << "momentum = " << momentum << std::endl
 //            << "energy moment= " << energy_momentum/dens << std::endl
 //            << "mach = " << mach << std::endl
 //            << "R = " << R << std::endl
 //            << "epsilon = " << epsilon << std::endl
 //            << "epsilon +vel^2= " << epsilon + 0.5 * velocity* velocity
-              << "S is " << S(Left) << std::endl
-              << "energy is " << energy_momentum << std::endl
-              << std::endl;
+//              << "S is " << S(Left) << std::endl
+//              << "energy is " << energy_momentum << std::endl
+//              << std::endl;
   //set the left boundary.
   boundary_Ql(0) = dens*S(Left);
   boundary_Ql(1) = momentum*S(Left);
@@ -350,7 +350,7 @@ void ProblemData::setInitialCondition(const double gamma,
     q[i](0) = dens * S(x(i));
     q[i](1) = momentum * S(x(i));
     q[i](2) = energy_momentum * S(x(i));
-    std::cout << "S at index " << i << " is " << S(x(i)) << std::endl;
+//    std::cout << "S at index " << i << " is " << S(x(i)) << std::endl;
   }
   std::cout << "Left boundary condition is " <<std::endl
             <<  boundary_Ql << std::endl
@@ -362,7 +362,7 @@ void ProblemData::setInitialCondition(const double gamma,
   {
     std::cout << q[i] << std::endl;
   }
-  std::cout<< "Initial E (interior) is " << std::endl;
+  std::cout<< "Initial E (interior) is " << std::endl << "__________________________________________________" << std::endl;
   for (int i = 0; i< q.size(); ++i)
     {
       std::cout << E(i) << std::endl;
@@ -404,7 +404,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file <<  " " << X(i)  << ", " << Mach(i) << std::endl;
+    a_file <<  " " << Left + (i+1)*dx  << ", " << Mach(i) << std::endl;
   }
   a_file.close();
 
@@ -422,7 +422,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file2 <<  " " << X(i)  << ", " << Density(i) << std::endl;
+    a_file2 <<  " " << Left + (i+1)*dx  << ", " << Density(i) << std::endl;
   }
   a_file2.close();
 
@@ -431,7 +431,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 <<  " " << X(i)  << ", " << Pressure(i) <<", " << i <<std::endl;
+    a_file3 <<  " " << Left + (i+1)*dx  << ", " << Pressure(i) <<", " << i <<std::endl;
   }
   a_file3.close();
 

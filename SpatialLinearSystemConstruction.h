@@ -24,6 +24,7 @@ class Solver{
     void solveSystem();//updates delta_Q with the result of the system solution.
 
 
+
     Solver(ProblemData *data, QuasiEuler * problem)
       : data(data), problem(problem), stencil_rows(data->q.size()*3), stencil_cols(3*(data->q.size()+4))
     {
@@ -69,12 +70,12 @@ void Solver::setupSystem(){
  *we can recompute in a next iteration*/
 void Solver::solveSystem(){
 
-  std::cout << "A is " << A << std::endl;
-  std::cout << "b is " << b << std::endl;
+//  std::cout << "A is " << A << std::endl;
+//  std::cout << "b is " << b << std::endl;
 
   Eigen::VectorXd delta_q = A.colPivHouseholderQr().solve(b);
 
-  std::cout << "step solution is " << delta_q << std::endl;
+//  std::cout << "step solution is \n" << delta_q << std::endl;
 
   for (int i=0; i<delta_Q.size(); ++i)
   {
@@ -121,8 +122,8 @@ void Solver::calculateAndAddSpatialMatrix(){
 
     assert(sub_index+local_matrix_size + 3<=A.cols() && "indexing outside of bounds in the matrix");
 //        std::cout << "(" << sub_index << " , " <<sub_index+local_matrix_size << ")" << std::endl;
-    A.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5*problem->dt *Ai_n;//TODO divide by dx here??
-    A.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5*problem->dt*Ai;
+    A.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5*problem->dt/data->dx *Ai_n;//TODO divide by dx here??
+    A.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5*problem->dt/data->dx*Ai;
   }
 //    std::cout << "System matrix excluding first and last " << std::endl << A << std::endl;
 }
@@ -145,6 +146,16 @@ void Solver::calculateAndAddL(){
 
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
   {
+    //for j-2 FIXME
+//    double u_1j = data->Velocity(i+1);
+//    double u_0j = data->Velocity(i);
+//    double a_1j = data->soundSpeed(i+1);
+//    double a_0j = data->soundSpeed(i);
+//
+//    double sigma1j = std::abs(u_1j) + a_1j;
+//    double sigma0j = std::abs(u_0j) + a_0j;
+//
+//    double gammaj = problem->sensor_contributions(i,1)*;
     stencil_high_order.block<3,3>(i*3, i*3) = problem->sensor_contributions(i,1)*(1*identity);
     stencil_high_order.block<3,3>(i*3, (i+1)*3) = problem->sensor_contributions(i,1)*(-4*identity);
     stencil_high_order.block<3,3>(i*3, (i+2)*3) = problem->sensor_contributions(i,1)*(6*identity);
@@ -172,35 +183,35 @@ void Solver::calculateAndAddL(){
 //   result = -problem->dt * result;
   result = -problem->dt * result;
 
-  std::cout << result << "\n stencil from e4 and e2 contribution ^^" <<std::endl;
+//  std::cout << result << "\n stencil from e4 and e2 contribution ^^" <<std::endl;
 
   A += result;
 
-  std::cout << "A is now " << std::endl << A << std::endl;
+//  std::cout << "A is now " << std::endl << A << std::endl;
 }
 /**
  * this function should calculate dxE for each node and place that in the vector b
  */
 void Solver::calcDe(){
-  std::cout << "calc de called here ++++++++++++++++" << std::endl;
+//  std::cout << "calc de called here ++++++++++++++++" << std::endl;
   int j = 0;
   for(int i = 0; i<data->q.size(); ++i)
   {
     Eigen::Vector3d Ei= data->E(i+1) - data->E(i-1);
 //    std::cout << "index is " << i <<" next E is \n " << data->E(i+1) << std::endl;
 //    std::cout << "index is " << i <<" previous E is \n " << data->E(i-1) << std::endl;
-//    std::cout << "index is " << i <<" Ei is \n " << Ei << std::endl;
+    std::cout << "index is " << i <<" Ei is \n " << Ei << std::endl;
 
     double e1 = Ei(0);
     double e2 = Ei(1);
     double e3 = Ei(2);
-    b(j) = e1/(2);
-    b(j+1) = e2/(2);
-    b(j+2) = e3/(2);
+//    b(j) = e1/(2);
+//    b(j+1) = e2/(2);
+//    b(j+2) = e3/(2);
 //    std::cout << "j is " << j << std::endl;
-//    b(j) = e1/(2*data->dx);
-//    b(j+1) = e2/(2*data->dx);
-//    b(j+2) = e3/(2*data->dx);
+    b(j) = e1/(2*data->dx);
+    b(j+1) = e2/(2*data->dx);
+    b(j+2) = e3/(2*data->dx);
     j+=3;
   }
   std::cout << "dex is " << std::endl << -1*problem->dt * b << std::endl;
@@ -208,7 +219,7 @@ void Solver::calcDe(){
 }
 
 /**
- * calculates the dissipation dontribution to the RHS, and adds it to the member function b
+ * calculates the dissipation contribution to the RHS, and adds it to the member function b
  */
 void Solver::calcDx(){
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());//we will overwrite this could introduce bugs
@@ -216,14 +227,14 @@ void Solver::calcDx(){
 
   for(int i = 0; i<data->q.size(); ++i)//loop through all nodes, this is before the last backward differencing.
   {
-    std::cout << "index dummy " << i << std::endl;
+//    std::cout << "index dummy " << i << std::endl;
     tmp_h[i] = problem->highOrderDifferencing(i);
     tmp_l[i] = problem->lowOrderDifferencing(i);
-    std::cout << "-------------" << std::endl
-              << tmp_h[i] << std::endl
-              << "-------------" << std::endl
-              << tmp_l[i] << std::endl
-              << "-------------" << std::endl;
+//    std::cout << "-------------" << std::endl
+//              << tmp_h[i] << std::endl
+//              << "-------------" << std::endl
+//              << tmp_l[i] << std::endl
+//              << "-------------" << std::endl;
   }
   std::cout << "B before \n" << b << std::endl;
   for(int i = 0; i < data->q.size(); ++i )//loop through all nodes
