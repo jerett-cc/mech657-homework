@@ -178,5 +178,4 @@ Eigen::Vector3d QuasiEuler::highOrderDifferencing(const int idx){
 
 
 
-
 #endif

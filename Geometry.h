@@ -78,7 +78,7 @@ class ProblemData{
 
     }
 
-
+//
   private:
     double Left, Right;
     int highest_index, problem_size, R_index, L_index;
@@ -109,7 +109,12 @@ const Eigen::Vector3d& ProblemData::operator[](const int idx) const{
     // if we are trying to access a value left of our leftmost, return out left boundary value
     if (idx<0)
     {
-      return boundary_Ql;
+      Eigen::Vector3d qb;
+      qb(0) = boundary_Ql(0);
+      qb(1) = boundary_Ql(1);
+      qb(2) =
+
+      return q[0];
     }
     else // if we are trying to access a value right of out rightmost value, just
          // do a constant extrapolation of our R value.
@@ -183,6 +188,18 @@ Eigen::VectorXd ProblemData::getQVect(){
  */
 Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
   Eigen::Vector3d E = Eigen::Vector3d::Zero();
+
+  if (idx < 0)
+  {
+    double density_l = boundary_Ql(0)/S(X(idx));
+    double velocity_l = boundary_Ql(1)/S(X(idx));
+    double pressure_l = Pressure(0);
+    E(0) = density_l * S(X(idx));
+    E(1) = density_l * velocity_l
+
+    std::cout << ""
+    //TODO FIXME
+  }
     double q1 = Q(idx)(0);
     double q2 = Q(idx)(1);
     double q3 = Q(idx)(2);
@@ -431,7 +448,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 <<  " " << Left + (i+1)*dx  << ", " << Pressure(i) <<", " << i <<std::endl;
+    a_file3 <<  " " << Left + (i+1)*dx  << ", " << Pressure(i)  << i <<std::endl;
   }
   a_file3.close();
 

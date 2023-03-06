@@ -4,6 +4,7 @@
 #include "SpatialLinearSystemConstruction.h"
 #include <cmath>
 #include <iostream>
+#include <string>
 #include "../Eigen/Dense"
 #include "../Eigen/IterativeLinearSolvers"
 
@@ -66,13 +67,13 @@ int main(){
 	parameters param1(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_1);
 	parameters param2(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_2);
 
-	ProblemData data1(num_nodes, 1, Left, Right, param1);
+	ProblemData data1(num_nodes,61, Left, Right, param1);
 //	ProblemData data2(num_nodes, 1, Left, Right, param2);
 
 	QuasiEuler problem1(&data1, 0.5);
 	Solver solver(&data1, &problem1);
 
-	data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
+data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
 //  std::cout << "-----------------------------" << std::endl;
 //	std::cout << data1[-2] << std::endl;
 //  std::cout << "-----------------------------" << std::endl;
@@ -106,48 +107,53 @@ int main(){
 //  solver.calcDe();
 //  solver.calcDx();
 
-   solver.reinit();
+//   solver.reinit();
 
 
-  //solve the system
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing solve system " << std::endl;
-  problem1.calculateSensorContributions();
-  solver.setupSystem();
-  solver.solveSystem();
-  solver.reinit();
+//   //solve the system
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing solve system " << std::endl;
+//  problem1.calculateSensorContributions();
+//  solver.setupSystem();
+//  solver.solveSystem();
+//  solver.reinit();
 
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "new q is" << std::endl;
-  std::cout << data1.getQVect() << std::endl;
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "new q is" << std::endl;
+//  std::cout << data1.getQVect() << std::endl;
 
-  data1.printQuantities("one step");
+//  data1.printQuantities("one step");
 
 
-  std::cout << "-----------------------------" << std::endl;
-  std::cout << "testing solve system step 2 " << std::endl;
-  problem1.calculateSensorContributions();
-  solver.setupSystem();
-  solver.solveSystem();
-  solver.reinit();
-//
-//
+//  std::cout << "-----------------------------" << std::endl;
+//  std::cout << "testing solve system step 2 " << std::endl;
+//  problem1.calculateSensorContributions();
+//  solver.setupSystem();
+//  solver.solveSystem();
+//  solver.reinit();
+
+
 //  std::cout << "------------Test 4 iterations----------------" << std::endl;
 //  std::cout << "new q at step 2 is" << std::endl;
 //  std::cout << data1.getQVect() << std::endl;
-//
+
 //  data1.printQuantities("two step");
-//
-//   for (int i = 0; i<4;++i)
-//   {
-//     problem1.calculateSensorContributions();
-//     solver.setupSystem();
-//     solver.solveSystem();
-//     std::cout << "new q is" << std::endl;
-//     std::cout << data1.getQVect() << std::endl;
-//     std::cout << "________Iteration over__________________________"<< std::endl;
-//     solver.reinit();
-//   }
+   std::cout << "Testing 4 iterations" << std::endl;
+
+   for (int i = 0; i<4;++i)
+   {
+     problem1.calculateSensorContributions();
+     std:: cout << "contributions ____" << std::endl;
+     std::cout << problem1.sensor_contributions << std::endl;
+     std::cout << "____________________________________" << std::endl;
+     solver.setupSystem();
+     solver.solveSystem();
+     data1.printQuantities("step-" + std::to_string(i));
+     std::cout << "new q is" << std::endl;
+     std::cout << data1.getQVect() << std::endl;
+     std::cout << "________Iteration over__________________________"<< std::endl;
+     solver.reinit();
+   }
 
 
 return 0;

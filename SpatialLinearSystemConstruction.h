@@ -26,14 +26,17 @@ class Solver{
 
 
     Solver(ProblemData *data, QuasiEuler * problem)
-      : data(data), problem(problem), stencil_rows(data->q.size()*3), stencil_cols(3*(data->q.size()+4))
+      : data(data), problem(problem)
+      , stencil_rows(data->q.size()*3)
+      , stencil_cols(3*(data->q.size()+4))
     {
       delta_Q = data->q;//we will overwrite the values in this. when we compute delta_Q
       //this could introduce bugs. be aware?
 //      std::cout << "Look here "  <<  data->getQVect().size() << std::endl;
       A = Eigen::MatrixXd::Identity(data->getQVect().size(), data->getQVect().size());
       b = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
-      assert(A.cols() == data->q.size()* 3);//todo remove this assertion, it will not be true in more than one dim
+      assert(A.cols() == data->q.size()* 3);
+      //todo remove this assertion, it will not be true in more than one dim
     }
 
 
@@ -122,7 +125,8 @@ void Solver::calculateAndAddSpatialMatrix(){
 
     assert(sub_index+local_matrix_size + 3<=A.cols() && "indexing outside of bounds in the matrix");
 //        std::cout << "(" << sub_index << " , " <<sub_index+local_matrix_size << ")" << std::endl;
-    A.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5*problem->dt/data->dx *Ai_n;//TODO divide by dx here??
+    A.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5*problem->dt/data->dx *Ai_n;
+    //TODO divide by dx here??
     A.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5*problem->dt/data->dx*Ai;
   }
 //    std::cout << "System matrix excluding first and last " << std::endl << A << std::endl;
@@ -143,47 +147,131 @@ void Solver::calculateAndAddL(){
       && "matrices for dissipation and system not same dimensions");
 
 //  std::cout<< result << std::endl;
-
+  //solve for the high order stencil
+  std::cout << "Solving high order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
   {
-    //for j-2 FIXME
-//    double u_1j = data->Velocity(i+1);
-//    double u_0j = data->Velocity(i);
-//    double a_1j = data->soundSpeed(i+1);
-//    double a_0j = data->soundSpeed(i);
-//
-//    double sigma1j = std::abs(u_1j) + a_1j;
-//    double sigma0j = std::abs(u_0j) + a_0j;
-//
-//    double gammaj = problem->sensor_contributions(i,1)*;
-    stencil_high_order.block<3,3>(i*3, i*3) = problem->sensor_contributions(i,1)*(1*identity);
-    stencil_high_order.block<3,3>(i*3, (i+1)*3) = problem->sensor_contributions(i,1)*(-4*identity);
-    stencil_high_order.block<3,3>(i*3, (i+2)*3) = problem->sensor_contributions(i,1)*(6*identity);
-    stencil_high_order.block<3,3>(i*3, (i+3)*3) = problem->sensor_contributions(i,1)*(-4*identity);
-    stencil_high_order.block<3,3>(i*3, (i+4)*3) = problem->sensor_contributions(i,1)*(1*identity);
-  }
 
+    std::vector<double> gamma(2);
+
+    for (int j = 0; j < 2; ++j)
+    {
+      if (i-1+j <0)
+      {
+        std::cout << "i-1+j <0" << std::endl;
+        double u_0j = data->Velocity(i-1+j);
+        double u_1j = data->Velocity(i+j);
+        double a_0j = data->soundSpeed(i-1+j);
+        double a_1j = data->soundSpeed(i+j);
+
+        double sigma1j = problem->sensor_contributions(i+j,1) * (std::abs(u_1j) + a_1j);
+        double sigma0j = sigma1j;
+        gamma[j] = 0.5 * (sigma1j + sigma0j);
+
+        std::cout << "GAMMA(-1) is \n" << gamma[0] << std::endl;
+        std::cout << "done." << std::endl;
+      }
+
+      else if (i+j > problem->sensor_contributions.rows()-1)
+      {
+        std::cout << "i + j >rows-1" << std::endl;
+        double u_0j = data->Velocity(i-1+j);
+        double u_1j = data->Velocity(i+j);
+        double a_0j = data->soundSpeed(i-1+j);
+        double a_1j = data->soundSpeed(i+j);
+
+        double sigma0j = problem->sensor_contributions(i-1+j,1) * (std::abs(u_0j) + a_0j);
+        double sigma1j = sigma0j;
+
+        gamma[j] = 0.5 * (sigma1j + sigma0j);
+        std::cout << "done." << std::endl;
+      } else {
+        std::cout << "internal case" << std::endl;
+        double u_0j = data->Velocity(i-1+j);
+        double u_1j = data->Velocity(i+j);
+        double a_0j = data->soundSpeed(i-1+j);
+        double a_1j = data->soundSpeed(i+j);
+
+        double sigma1j = problem->sensor_contributions(i+j,1) * (std::abs(u_1j) + a_1j);
+        double sigma0j = problem->sensor_contributions(i-1+j,1) * (std::abs(u_0j) + a_0j);
+
+        gamma[j] = 0.5 * (sigma1j + sigma0j);
+        std::cout << "done." << std::endl;
+      }
+    }
+
+//    double gammaj = problem->sensor_contributions(i,1)*;
+    stencil_high_order.block<3,3>(i*3, i*3) = gamma[0]*(1*identity);
+    stencil_high_order.block<3,3>(i*3, (i+1)*3) = -(gamma[1] + 3*gamma[0])*(-4*identity);
+    stencil_high_order.block<3,3>(i*3, (i+2)*3) = (3*gamma[0] + 3*gamma[1])*(6*identity);
+    stencil_high_order.block<3,3>(i*3, (i+3)*3) = -(3*gamma[1] + gamma[0])*(-4*identity);
+    stencil_high_order.block<3,3>(i*3, (i+4)*3) = gamma[1]*(1*identity);
+  }
+  std::cout << "Done." << std::endl;
 //  std::cout << stencil_high_order << std::endl;
 
+  //solve for low order stencil
+  std::cout << "Calculating low order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
   {
-    stencil_low_order.block<3,3>(i*3, (i+1)*3) = problem->sensor_contributions(i,0)*(-1*identity);
-    stencil_low_order.block<3,3>(i*3, (i+2)*3) = problem->sensor_contributions(i,0)*(2*identity);
-    stencil_low_order.block<3,3>(i*3, (i+3)*3) = problem->sensor_contributions(i,0)*(-1*identity);
+
+    std::vector<double> gamma(2);
+
+    for (int j = 0; j < 2; ++j)
+    {
+      if (i-1+j <0)
+      {
+        double u_1j = data->Velocity(i+j);
+        double a_1j = data->soundSpeed(i+j);
+
+        double sigma1j = problem->sensor_contributions(i+j,0) * (std::abs(u_1j) + a_1j);
+        double sigma0j = sigma1j;
+        gamma[j] = 0.5 * (sigma1j + sigma0j);
+
+      }
+
+      else if (i+j > problem->sensor_contributions.rows()-1)
+      {
+        double u_0j = data->Velocity(i-1+j);
+        double a_0j = data->soundSpeed(i-1+j);
+
+        double sigma0j = problem->sensor_contributions(i-1+j,0) * (std::abs(u_0j) + a_0j);
+        double sigma1j = sigma0j;
+
+        gamma[j] = 0.5 * (sigma1j + sigma0j);
+
+      } else {
+
+        double u_0j = data->Velocity(i-1+j);
+        double u_1j = data->Velocity(i+j);
+        double a_0j = data->soundSpeed(i-1+j);
+        double a_1j = data->soundSpeed(i+j);
+
+        double sigma1j = problem->sensor_contributions(i+j,0) * (std::abs(u_1j) + a_1j);
+        double sigma0j = problem->sensor_contributions(i-1+j,0) * (std::abs(u_0j) + a_0j);
+
+        gamma[j] = 0.5 * (sigma1j + sigma0j);
+      }
+    }
+
+
+    stencil_low_order.block<3,3>(i*3, (i+1)*3) = gamma[0]*(-1*identity);
+    stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[0] + gamma[1])*(2*identity);
+    stencil_low_order.block<3,3>(i*3, (i+3)*3) = gamma[1]*(-1*identity);
   }
+  std::cout << "done" << std::endl;
 
   stencil_high_order += stencil_low_order;
-//    std::cout << stencil_high_order << "\n stencil ^^" <<std::endl;
+//   std::cout << stenci  l_high_order << "\n stencil ^^" <<std::endl;
 
   //extract correct matrix
   for (int i=6; i < stencil_cols-6; ++i)
   {
     result.col(i - 6) = stencil_high_order.col(i);
   }
-//   result = -problem->dt * result;
-  result = -problem->dt * result;
+   result = problem->dt * result;
 
-//  std::cout << result << "\n stencil from e4 and e2 contribution ^^" <<std::endl;
+  std::cout << result << "\n stencil from e4 and e2 contribution ^^" <<std::endl;
 
   A += result;
 
@@ -241,7 +329,7 @@ void Solver::calcDx(){
   {
     for(int j = 0; j<3; ++j)//loop through all components
     {
-      b(i+j) += 1/data->dx * (tmp_l[i](j) - tmp_l[i-1](j)) - 1/data->dx * (tmp_l[i](j) - tmp_l[i-1](j));
+      b(i+j) -= 1/data->dx * (tmp_l[i](j) - tmp_l[i-1](j)) - 1/data->dx * (tmp_l[i](j) - tmp_l[i-1](j));
     }
   }
 
