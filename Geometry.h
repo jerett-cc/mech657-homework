@@ -402,6 +402,22 @@ void ProblemData::setInitialCondition(const double gamma,
   std::cout << "boundary E(2) = " << boundary_Er(2) << std::endl;
   std::cout << "____________---________________" << std::endl;
 
+  //initialize the other components of the boundary vectors with the proper values.
+
+  boundary_Ql(2) = boundary_Qr(2);
+  boundary_El(2) = boundary_Er(2);
+
+  boundary_Qr(0) = boundary_Ql(0);
+  boundary_Qr(1) = boundary_Ql(1);
+  boundary_Er(0) = boundary_El(0);
+  boundary_Er(1) = boundary_El(1);
+
+  std::cout << "_____Initial vectors___________" << std::endl;
+  std::cout << boundary_Ql << std::endl << boundary_Qr << std::endl;
+  std::cout << boundary_El << std::endl << boundary_Er << std::endl;
+
+  //initialize the entire
+
 
   //double a = std::pow(gamma*pressure/dens, 0.5);
   //double a2 = std::sqrt(gamma*R* temperature);
