@@ -46,6 +46,7 @@ class ProblemData{
     double Temperature(const int idx);//todo make temp at each node point in interior
     double Mach(const int idx);
     double Velocity(const int idx);
+    double initial_pressure;
 
 
     const Eigen::Vector3d& operator[](const int idx) const;
@@ -84,8 +85,8 @@ class ProblemData{
     int highest_index, problem_size, R_index, L_index;
     double S(const double x);
     double X(const int idx);
-    double nonlinearFunctionToSolveP1(double M,double s_star, double gamma);
-    double nonlinearFunctionToSolveP1Deriv(double M,double s_star, double gamma);
+    double nonlinearFunctionToSolveP1(double M,double s_star, double gamma, double x);
+    double nonlinearFunctionToSolveP1Deriv(double M,double s_star, double gamma, double x);
     bool outOfBounds(int idx);
 };
 
@@ -112,8 +113,8 @@ const Eigen::Vector3d& ProblemData::operator[](const int idx) const{
       Eigen::Vector3d qb;
       qb(0) = boundary_Ql(0);
       qb(1) = boundary_Ql(1);
-      qb(2) =
-
+      //qb(2) =
+//FIXME
       return q[0];
     }
     else // if we are trying to access a value right of out rightmost value, just
@@ -192,14 +193,36 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
   if (idx < 0)
   {
     double density_l = boundary_Ql(0)/S(X(idx));
-    double velocity_l = boundary_Ql(1)/S(X(idx));
+    double velocity_l = boundary_Ql(1)/S(X(0));
     double pressure_l = Pressure(0);
     E(0) = density_l * S(X(idx));
-    E(1) = density_l * velocity_l
+    E(1) = density_l * velocity_l * S(X(idx));
+    E(2) = density_l * (pressure_l + 0.5 * std::pow(velocity_l,2));
 
-    std::cout << ""
-    //TODO FIXME
+    std::cout << "Density on left  = " << E(0)/S(X(idx)) << std::endl;
+    std::cout << "Velocity on left = " << E(1)/S(X(idx)) << std::endl;
+    std::cout << "Pressure on left = " << E(2)/S(X(idx)) << std::endl;
+    std::cout << "E on left is     = \n" << E << std::endl;
+    return E;
+
+  } else if (idx > highest_index)
+  {
+    double density_r = Q(highest_index)(0)/S(X(idx));
+    double velocity_r = Q(highest_index)(1)/S(X(idx));
+    double pressure_r = initial_pressure;
+    E(0) = density_r * S(X(idx));
+    E(1) = density_r * velocity_r * S(X(idx));
+    E(2) = density_r * (pressure_r + 0.5 * std::pow(velocity_r,2)) * S(X(idx));
+
+    std::cout << "Density on right  = " << E(0)/S(X(idx)) << std::endl;
+    std::cout << "Velocity on right = " << E(1)/S(X(idx)) << std::endl;
+    std::cout << "Pressure on right = " << initial_pressure << std::endl;
+    std::cout << "match             = " << (std::abs(initial_pressure - (E(2)/(S(X(idx))*density_r) - 0.5 *std::pow(velocity_r,2))) < 1e-12) << std::endl;
+    std::cout << "E on right is     = \n" << E << std::endl;
+    return E;
   }
+  else
+  {
     double q1 = Q(idx)(0);
     double q2 = Q(idx)(1);
     double q3 = Q(idx)(2);
@@ -207,6 +230,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
     E(1) = (parameter.gamma - 1.0)*q3 + (3-parameter.gamma)/2*q2*q2/q1;
     E(2) = parameter.gamma * q3*q2/q1 -(parameter.gamma - 1)/2 *q2*q2*q2/(q1*q1);
     return E;
+  }
 }
 /**
  * return double pressure at specified index
@@ -270,7 +294,7 @@ double ProblemData::Temperature(const int idx){
   double q1 = Q(idx)(0);
   double q2 = Q(idx)(1);
   double q3 = Q(idx)(2);
-  return q1;//todo calculate this.
+  return q1;//todo calculate this. FIXME
 }
 
 /**
@@ -293,7 +317,7 @@ double ProblemData::X(const int idx){
     }
     else
     {
-      return Right-dx;
+      return Right-dx;//FIXME do I need to return Right??
     }
   }
   else
@@ -319,17 +343,28 @@ void ProblemData::setInitialCondition(const double gamma,
                                         const double total_temperature,
                                         const double R,
                                         const double s_star){
-  double mach = 0.1;
-  while(std::fabs(nonlinearFunctionToSolveP1(mach, s_star, gamma))>1e-13)
+  double machl = 0.1;
+  double machr = machl;
+  while(std::fabs(nonlinearFunctionToSolveP1(machl, s_star, gamma, Left))>1e-13)
   {
-    mach = mach -nonlinearFunctionToSolveP1(mach, s_star, gamma)/
-        nonlinearFunctionToSolveP1Deriv(mach, s_star, gamma);
+    machl = machl -nonlinearFunctionToSolveP1(machl, s_star, gamma, Left)/
+       nonlinearFunctionToSolveP1Deriv(machl, s_star, gamma, Left);
+    machr = machr -nonlinearFunctionToSolveP1(machr, s_star, gamma, Right)/
+       nonlinearFunctionToSolveP1Deriv(machr, s_star, gamma, Right);
+
+
   }
-  double inside = 1 + (gamma-1)/(2)*std::pow(mach,2);
-  double pressure = inlet_pressure * std::pow(inside,-gamma/(gamma-1));
-  double temperature = total_temperature /inside;
+  std::cout << "Mach left is  " << machl << std::endl;
+  std::cout << "Mach right is " << machr << std::endl;
+  double insidel = 1 + (gamma-1)/(2)*std::pow(machl,2);
+  double insider = 1 + (gamma-1)/(2)*std::pow(machr,2);
+
+  double pressure = inlet_pressure * std::pow(insider,-gamma/(gamma-1));
+  initial_pressure = pressure;
+
+  double temperature = total_temperature /insidel;
   double dens = pressure / (R* temperature);
-  double velocity = std::sqrt(gamma*pressure/dens) * mach ;
+  double velocity = std::sqrt(gamma*pressure/dens) * machl ;
   double a = std::pow(gamma*pressure/dens, 0.5);
   double a2 = std::sqrt(gamma*R* temperature);
   double momentum = velocity * dens;
@@ -362,7 +397,7 @@ void ProblemData::setInitialCondition(const double gamma,
                      + pressure*S(Left)* boundary_Ql(1)/boundary_Ql(0);
 
 
-  for (int i = 0; i<q.size(); ++i)
+  for (int i = 0; i < q.size(); ++i)
   {
     q[i](0) = dens * S(x(i));
     q[i](1) = momentum * S(x(i));
@@ -398,18 +433,18 @@ double ProblemData::S(const double x){
     else return 0.0;
 }
 
-double ProblemData::nonlinearFunctionToSolveP1(double M, double s_star, double gamma){
+double ProblemData::nonlinearFunctionToSolveP1(double M, double s_star, double gamma, double x){
 
   double inside = 2/(gamma +1) + (gamma - 1)/(gamma+1)*pow(M,2);
   double exponent = (gamma + 1)/(2*(gamma-1));
   assert(fabs(exponent - 3)<1e-13);
-  return pow(inside, exponent) - (S(Left)*M)/(s_star);
+  return pow(inside, exponent) - (S(x)*M)/(s_star);
 }
 
-double ProblemData::nonlinearFunctionToSolveP1Deriv(double M, double s_star, double gamma){
+double ProblemData::nonlinearFunctionToSolveP1Deriv(double M, double s_star, double gamma, double x){
   double inside = 2/(gamma +1) + (gamma - 1)/(gamma+1)*pow(M,2);
   double exponent = (gamma + 1)/(2*(gamma-1));
-  return M*pow(inside, exponent-1) - (S(Left))/(s_star);
+  return M*pow(inside, exponent-1) - (S(x))/(s_star);
 }
 /**
  * calculates and prints quantities to csv. To be used after the calculation is done.
