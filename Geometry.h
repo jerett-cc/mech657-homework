@@ -342,7 +342,8 @@ void ProblemData::setInitialCondition(const double gamma,
                                         const double inlet_pressure,
                                         const double total_temperature,
                                         const double R,
-                                        const double s_star){
+                                      const double s_star){
+  //calculate mach numbers on left and right of intervals.
   double machl = 0.1;
   double machr = machl;
   while(std::fabs(nonlinearFunctionToSolveP1(machl, s_star, gamma, Left))>1e-13)
@@ -351,12 +352,35 @@ void ProblemData::setInitialCondition(const double gamma,
        nonlinearFunctionToSolveP1Deriv(machl, s_star, gamma, Left);
     machr = machr -nonlinearFunctionToSolveP1(machr, s_star, gamma, Right)/
        nonlinearFunctionToSolveP1Deriv(machr, s_star, gamma, Right);
-
-
   }
+
+
   std::cout << "Mach left is  " << machl << std::endl;
   std::cout << "Mach right is " << machr << std::endl;
+
+  //calculate pressure and velocity on left of interval, and put into boundary Q_l
   double insidel = 1 + (gamma-1)/(2)*std::pow(machl,2);
+  double pressurel = inlet_pressure * std::pow(insidel, -gamma/(gamma-1));
+  double temperaturel = total_temperature / insidel;
+  double densityl = pressurel / (R* temperaturel);
+  double velocityl = std::sqrt(gamma*pressurel/densityl) * machl;
+
+  boundary_Ql(0) = densityl * S(Left);
+  boundary_Ql(1) = densityl * velocityl * S(Left);
+
+  boundary_El(0) = boundary_Ql(1);
+  boundary_El(1) = std::pow(boundary_Ql(1),2)/boundary_Ql(0) + pressurel*S(Left);
+
+  std::cout << "density L     = " << densityl << std::endl;
+  std::cout << "boundary Q(0) = " << boundary_Ql(0) << std::endl;
+  std::cout << "velocity L    = " << velocityl << std::endl;
+  std::cout << "boundary Q(1) = " << boundary_Ql(1) << std::endl;
+  std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
+  std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
+
+
+  /* FIXME need to do calculate boundary ql(2), which should depend on pressure from right value, at least to start. */
+
   double insider = 1 + (gamma-1)/(2)*std::pow(machr,2);
 
   double pressure = inlet_pressure * std::pow(insider,-gamma/(gamma-1));
