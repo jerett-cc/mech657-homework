@@ -59,7 +59,7 @@ class ProblemData{
                              const double s_star);
     Eigen::VectorXd getQVect();
     double soundSpeed(const int position);
-    double energy(const int idx);
+    double EnergyPerUnitMass(const int idx);
     Eigen::Vector3d Q(const int idx);
     void printQuantities(std::string f_name);
 
@@ -80,7 +80,7 @@ class ProblemData{
 
     }
 
-//
+//TODO: need to add an update boundary values function
   //private:
     double Left, Right;
     int highest_index, problem_size, R_index, L_index;
@@ -91,24 +91,9 @@ class ProblemData{
     bool outOfBounds(int idx);
 };
 
-double ProblemData::energy(const int idx){
-  if (outOfBounds(idx))
-  {
-    if (idx<0)
-    {
-      return Density(L_index) *
-        (Pressure(L_index+1) + 0.5 * std::pow(Mach(L_index)/soundSpeed(L_index), 2)) * S(Left);
-    }
-    else
-    {
-      return Density(R_index) *
-        (Pressure(0) + 0.5 *std::pow(Mach(R_index)/soundSpeed(R_index),2)) * S(Right);
-    }
-  }
-  else
-  {
-    return x(idx);
-  }
+//FIXME test this.
+double ProblemData::EnergyPerUnitMass(const int idx){
+      return Q(idx)(2)/Q(idx)(0);
 }
 
 /**
@@ -125,60 +110,48 @@ bool ProblemData::outOfBounds(int idx){
  */
 const Eigen::Vector3d& ProblemData::operator[](const int idx) const{
   bool out_of_bounds = (idx <0 || idx > highest_index) ? 1:0;
-  //if we are accessing outside of our bounds, do this logic
+
   if (out_of_bounds)
   {
-    // if we are trying to access a value left of our leftmost, return out left boundary value
     if (idx<0)
     {
-      Eigen::Vector3d qb;
-      qb(0) = boundary_Ql(0);
-      qb(1) = boundary_Ql(1);
-      //qb(2) =
-//FIXME
-      return q[0];
+      return boundary_Ql;
     }
-    else // if we are trying to access a value right of out rightmost value, just
-         // do a constant extrapolation of our R value.
+    else
     {
-      return q[highest_index];
+      return boundary_Qr;
     }
   }
-  else // if not out of bounds, return Q at this point
+  else
   {
     return q[idx];
   }
 }
+
 /**
  * Return a modifiable Q at a specified index, supporting indexing out of bounds by
  * a constant extrapolation.
  */
 Eigen::Vector3d ProblemData::operator[](const int idx){
-  bool out_of_bounds = (idx <0 || idx > highest_index) ? 1:0;
-  Eigen::Vector3d rtrn;
-  //if we are accessing outside of our bounds, do this logic
+
   if (outOfBounds(idx))
   {
-    // if we are trying to access a value left of our leftmost, return out left boundary value
+
     if (idx<0)
     {
-      rtrn(0) = boundary_Ql(0);
-      rtrn(1) = boundary_Ql(1);
-      rtrn(2) = q[0](2);
       return boundary_Ql;
     }
-    else // if we are trying to access a value right of out rightmost value, just
-         // do a constant extrapolation of our R value.
+    else
     {
-//      std::cout << "highest index " << q[highest_index] << std::endl;
-      return q[highest_index];
+      return boundary_Qr;
     }
   }
-  else // if not out of bounds, return Q at this point
+  else
   {
     return q[idx];
   }
 }
+
 /**
  * Add a vector to Q (alias data), call would be data += step_solution
  * todo test this.
@@ -194,7 +167,7 @@ void ProblemData::operator+=(const std::vector<Eigen::Vector3d> &a_vec){
 
 /**
  * return Q as a single vector, rather than a std::vector of 3 component vectors
- * this would be the points on the interior
+ * this would be the points on the interior, FIXME test this
  */
 Eigen::VectorXd ProblemData::getQVect(){
   Eigen::VectorXd tmp = Eigen::VectorXd::Zero(problem_size);
@@ -210,50 +183,25 @@ Eigen::VectorXd ProblemData::getQVect(){
 }
 /**
  * this should return E at the specified index, if idx is out of bounds, it returns a constant
- * vector that is the left most or right most allowed value of E
+ * vector that is the left most or right most allowed value of E FIXME TEST THIS
  */
 Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
   Eigen::Vector3d E = Eigen::Vector3d::Zero();
 
   if (idx < 0)
   {
-    double density_l = boundary_Ql(0)/S(X(idx));
-    double velocity_l = boundary_Ql(1)/S(X(0));
-    double pressure_l = Pressure(0);
-    E(0) = density_l * S(X(idx));
-    E(1) = density_l * velocity_l * S(X(idx));
-    E(2) = density_l * (pressure_l + 0.5 * std::pow(velocity_l,2));
-
-    std::cout << "Density on left  = " << E(0)/S(X(idx)) << std::endl;
-    std::cout << "Velocity on left = " << E(1)/S(X(idx)) << std::endl;
-    std::cout << "Pressure on left = " << E(2)/S(X(idx)) << std::endl;
-    std::cout << "E on left is     = \n" << E << std::endl;
-    return E;
-
-  } else if (idx > highest_index)
+    return boundary_El;
+  }
+  else if (idx > highest_index)
   {
-    double density_r = Q(highest_index)(0)/S(X(idx));
-    double velocity_r = Q(highest_index)(1)/S(X(idx));
-    double pressure_r = initial_pressure;
-    E(0) = density_r * S(X(idx));
-    E(1) = density_r * velocity_r * S(X(idx));
-    E(2) = density_r * (pressure_r + 0.5 * std::pow(velocity_r,2)) * S(X(idx));
-
-    std::cout << "Density on right  = " << E(0)/S(X(idx)) << std::endl;
-    std::cout << "Velocity on right = " << E(1)/S(X(idx)) << std::endl;
-    std::cout << "Pressure on right = " << initial_pressure << std::endl;
-    std::cout << "match             = " << (std::abs(initial_pressure - (E(2)/(S(X(idx))*density_r) - 0.5 *std::pow(velocity_r,2))) < 1e-12) << std::endl;
-    std::cout << "E on right is     = \n" << E << std::endl;
-    return E;
+    return boundary_Er;
   }
   else
   {
-    double q1 = Q(idx)(0);
-    double q2 = Q(idx)(1);
-    double q3 = Q(idx)(2);
-    E(0) = q2;
-    E(1) = (parameter.gamma - 1.0)*q3 + (3-parameter.gamma)/2*q2*q2/q1;
-    E(2) = parameter.gamma * q3*q2/q1 -(parameter.gamma - 1)/2 *q2*q2*q2/(q1*q1);
+    E(0) = Density(idx) * Velocity(idx) * S(X(idx));
+    E(1) = (Density(idx) * Velocity(idx) * Velocity(idx) +  Pressure(idx)) * S(X(idx));
+    E(2) = Velocity(idx) * (Density(idx) * EnergyPerUnitMass(idx) + Pressure(idx)) * S(X(idx));
+
     return E;
   }
 }
@@ -261,29 +209,15 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-//  std::cout << "++++" << std::endl
-//            << "x[idx] is " << std::endl
-//            << X(idx) << std::endl
-//            <<  "S(X[idx]) is " << std::endl
-//            << S(X(idx)) << std::endl;
-  double q1 = Q(idx)(0)/(S(X(idx)));
-  double q2 = Q(idx)(1)/(S(X(idx)));
-  double q3 = Q(idx)(2)/(S(X(idx)));
-  return (parameter.gamma-1) * (q3 - 1/ (2*q1)*std::pow(q2,2));
+  return (parameter.gamma -1) * Density(idx) * EnergyPerUnitMass(idx)
 }
 
 /**
  * return double velocity at specified index
  */
 double ProblemData::Velocity(const int idx){
-//  std::cout << "++++" << std::endl
-//            << "x[-1] is " << std::endl
-//            << X(-1) << std::endl
-//            <<  "S(X[-1]) is " << std::endl
-//            << S(X(idx)) << std::endl;
-  double q1 = Q(idx)(0)/(S(X(idx)));
-  double q2 = Q(idx)(1)/(S(X(idx)));
-  double q3 = Q(idx)(2)/(S(X(idx)));
+  double q1 = Q(idx)(0);
+  double q2 = Q(idx)(1);
   return q2/q1;
 }
 
@@ -291,24 +225,15 @@ double ProblemData::Velocity(const int idx){
  * return double mach at specified index
  */
 double ProblemData::Mach(const int idx){
-//  std::cout << "++++" << std::endl
-//            << "q[-1] is " << std::endl
-//            << Q(-1) << std::endl;
-  double q1 = Q(idx)(0)/(S(X(idx)));
-  double q2 = Q(idx)(1)/(S(X(idx)));
-  double q3 = Q(idx)(2)/(S(X(idx)));
-  return (q2/q1)/(soundSpeed(idx));
+  double v = Velocity(idx);
+  return v/soundSpeed(idx);
 }
 
 /**
  * return double density at specified index
  */
 double ProblemData::Density(const int idx){
-
-  double q1 = Q(idx)(0)/(S(X(idx)));
-  double q2 = Q(idx)(1)/(S(X(idx)));
-  double q3 = Q(idx)(2)/(S(X(idx)));
-  return q1;
+  return Q(idx)(0)/S(X(idx));
 }
 
 /**
@@ -323,14 +248,14 @@ double ProblemData::Temperature(const int idx){
 }
 
 /**
- * return Q at specified index, this is for internal class computations only
+ * return Q at specified index
  */
 Eigen::Vector3d ProblemData::Q(const int idx){
-  return operator [](idx);
+  return operator[](idx);
 }
 
 /**
- * return X at specified index, this is for internal class computations only
+ * return X at specified index
  */
 double ProblemData::X(const int idx){
 //  std::cout << outOfBounds(idx) <<std::endl;
