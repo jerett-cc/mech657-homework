@@ -35,7 +35,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_nodes = 6;
+	int num_nodes = 9;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -73,21 +73,22 @@ int main(){
 	QuasiEuler problem1(&data1, 0.5);
 	Solver solver(&data1, &problem1);
 
-data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
-//  std::cout << "-----------------------------" << std::endl;
-//	std::cout << data1[-2] << std::endl;
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << data1[0] << std::endl;
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << data1[3] << std::endl;
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << "testing get_Q " << std::endl;
-//  std::cout << data1.getQVect() << std::endl;
-//  std::cout << "-----------------------------" << std::endl;
+    data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
+
+  std::cout << "-----------test X(*)-----------" << std::endl;
+  std::cout << data1.X(-1) << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << data1.X(10) << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << data1.X(9) << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing get_Q " << std::endl;
+  std::cout << data1.getQVect() << std::endl;
+  std::cout << "-----------------------------" << std::endl;
 //  std::cout << "testing pressure at L endpoint match initial pressure?" << std::endl;
 //  std::cout << data1.Pressure(-1) << std::endl;
 
-  data1.printQuantities("initial_problem");
+  //data1.printQuantities("initial_problem");
 //
 //  problem1.calculateSensorContributions();
 //  std::cout << "-----------------------------" << std::endl;
@@ -108,7 +109,9 @@ data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R,
 //  solver.calcDx();
 
 //   solver.reinit();
-
+//  data1.E(-1);
+//  data1.E(6);
+//  std::cout << data1.E(0) << std::endl;
 
 //   //solve the system
 //  std::cout << "-----------------------------" << std::endl;
@@ -140,7 +143,7 @@ data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R,
 //  data1.printQuantities("two step");
    std::cout << "Testing 4 iterations" << std::endl;
 
-   for (int i = 0; i<4;++i)
+   for (int i = 0; i<0;++i)
    {
      problem1.calculateSensorContributions();
      std:: cout << "contributions ____" << std::endl;

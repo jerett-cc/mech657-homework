@@ -37,7 +37,7 @@ class ProblemData{
     Eigen::Vector3d boundary_Er;//todo need this?
     Eigen::Vector3d boundary_Qr;//todo need this?
 
-    double dx;
+    double dx, boundary_velocity, boundary_density, boundary_pressure;
     const parameters parameter;
 
     Eigen::Vector3d E(const int idx);
@@ -50,7 +50,7 @@ class ProblemData{
 
 
     const Eigen::Vector3d& operator[](const int idx) const;
-    Eigen::Vector3d& operator[](const int idx);
+    Eigen::Vector3d operator[](const int idx);
     void operator+=(const std::vector<Eigen::Vector3d> &a_vec);
     void setInitialCondition(const double gamma,
                              const double inlet_pressure,
@@ -59,6 +59,7 @@ class ProblemData{
                              const double s_star);
     Eigen::VectorXd getQVect();
     double soundSpeed(const int position);
+    double energy(const int idx);
     Eigen::Vector3d Q(const int idx);
     void printQuantities(std::string f_name);
 
@@ -80,7 +81,7 @@ class ProblemData{
     }
 
 //
-  private:
+  //private:
     double Left, Right;
     int highest_index, problem_size, R_index, L_index;
     double S(const double x);
@@ -89,6 +90,26 @@ class ProblemData{
     double nonlinearFunctionToSolveP1Deriv(double M,double s_star, double gamma, double x);
     bool outOfBounds(int idx);
 };
+
+double ProblemData::energy(const int idx){
+  if (outOfBounds(idx))
+  {
+    if (idx<0)
+    {
+      return Density(L_index) *
+        (Pressure(L_index+1) + 0.5 * std::pow(Mach(L_index)/soundSpeed(L_index), 2)) * S(Left);
+    }
+    else
+    {
+      return Density(R_index) *
+        (Pressure(0) + 0.5 *std::pow(Mach(R_index)/soundSpeed(R_index),2)) * S(Right);
+    }
+  }
+  else
+  {
+    return x(idx);
+  }
+}
 
 /**
  * returns 1 if index is out of bounds for Q, and 0 if not.
@@ -132,14 +153,18 @@ const Eigen::Vector3d& ProblemData::operator[](const int idx) const{
  * Return a modifiable Q at a specified index, supporting indexing out of bounds by
  * a constant extrapolation.
  */
-Eigen::Vector3d& ProblemData::operator[](const int idx){
+Eigen::Vector3d ProblemData::operator[](const int idx){
   bool out_of_bounds = (idx <0 || idx > highest_index) ? 1:0;
+  Eigen::Vector3d rtrn;
   //if we are accessing outside of our bounds, do this logic
   if (outOfBounds(idx))
   {
     // if we are trying to access a value left of our leftmost, return out left boundary value
     if (idx<0)
     {
+      rtrn(0) = boundary_Ql(0);
+      rtrn(1) = boundary_Ql(1);
+      rtrn(2) = q[0](2);
       return boundary_Ql;
     }
     else // if we are trying to access a value right of out rightmost value, just
@@ -317,7 +342,7 @@ double ProblemData::X(const int idx){
     }
     else
     {
-      return Right-dx;//FIXME do I need to return Right??
+      return Right;
     }
   }
   else
@@ -365,6 +390,9 @@ void ProblemData::setInitialCondition(const double gamma,
   double densityl = pressurel / (R* temperaturel);
   double velocityl = std::sqrt(gamma*pressurel/densityl) * machl;
 
+  boundary_velocity = velocityl;
+  boundary_density = densityl;
+
   boundary_Ql(0) = densityl * S(Left);
   boundary_Ql(1) = densityl * velocityl * S(Left);
 
@@ -379,7 +407,6 @@ void ProblemData::setInitialCondition(const double gamma,
   std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
   std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
 
-  /* FIXME need to do calculate boundary ql(2), which should depend on pressure from right value, at least to start. */
 
   //calculate pressure and velocity on right of the interval, and put into boundary_Qr
   //this one we can only prescribe the pressure, the other variables should be interpolated from the interior
@@ -390,6 +417,8 @@ void ProblemData::setInitialCondition(const double gamma,
   double temperaturer = total_temperature /insider;
   double densityr = pressurer / (R* temperaturer);
   double velocityr = std::sqrt(gamma*pressurer/densityr) * machr;
+
+  boundary_pressure = pressurer;
 
   boundary_Qr(2) = densityr * (pressurer + velocityr*velocityr /2) * S(Right);
 
@@ -404,19 +433,28 @@ void ProblemData::setInitialCondition(const double gamma,
 
   //initialize the other components of the boundary vectors with the proper values.
 
-  boundary_Ql(2) = boundary_Qr(2);
-  boundary_El(2) = boundary_Er(2);
+  boundary_Ql(2) = densityl * (pressurer + velocityl*velocityl/2) *S(Left);
+  boundary_El(2) = velocityl * (densityl * (pressurer + velocityl*velocityl/2) + pressurer) * S(Left);
 
-  boundary_Qr(0) = boundary_Ql(0);
-  boundary_Qr(1) = boundary_Ql(1);
-  boundary_Er(0) = boundary_El(0);
-  boundary_Er(1) = boundary_El(1);
+  boundary_Qr(0) = densityl * S(Right);
+  boundary_Qr(1) = densityl * velocityl * S(Right);
+  boundary_Er(0) = boundary_Qr(1);
+  boundary_Er(1) = densityl * velocityl * velocityl + pressurel;
 
   std::cout << "_____Initial vectors___________" << std::endl;
   std::cout << boundary_Ql << std::endl << boundary_Qr << std::endl;
   std::cout << boundary_El << std::endl << boundary_Er << std::endl;
+  std::cout << "_______________________________" << std::endl;
 
-  //initialize the entire
+  /*FIXME why are the values not zero?? Probably need to initialize with the primitive variables densityl, velocityl, and pressurer*/
+  //initialize the entire domain to the same values as the boundary, with the proper
+  for (int i = 0; i < q.size(); ++i)
+    {
+      q[i](0) = boundary_Ql(0)*S(x(i))/S(Left) ;
+      q[i](1) = boundary_Ql(1)*S(x(i))/S(Left) ;
+      q[i](2) = boundary_Ql(2)*S(x(i))/S(Left) ;
+      std::cout << q[i] << std::endl;
+    }
 
 
   //double a = std::pow(gamma*pressure/dens, 0.5);
@@ -538,7 +576,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 <<  " " << Left + (i+1)*dx  << ", " << Pressure(i)  << i <<std::endl;
+    a_file3 <<  " " << Left + (i+1)*dx  << ", " << Pressure(i) <<std::endl;
   }
   a_file3.close();
 
