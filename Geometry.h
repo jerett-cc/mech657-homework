@@ -24,6 +24,7 @@ struct parameters{
     //copy constructor is default
     parameters(const parameters&) = default;
 };
+
 /**
  * this class stores the solution vector and boundary conditions for the homework,
  * as well as methods to calculate the basic variables like pressure, density, mach, temp.
@@ -205,11 +206,12 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
     return E;
   }
 }
+
 /**
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-  return (parameter.gamma -1) * Density(idx) * EnergyPerUnitMass(idx)
+  return (parameter.gamma -1) * Density(idx) * EnergyPerUnitMass(idx);
 }
 
 /**
@@ -240,11 +242,7 @@ double ProblemData::Density(const int idx){
  * return double temperature at specified index
  */
 double ProblemData::Temperature(const int idx){
-  assert(0 && " calculating temp not implemented yet");
-  double q1 = Q(idx)(0);
-  double q2 = Q(idx)(1);
-  double q3 = Q(idx)(2);
-  return q1;//todo calculate this. FIXME
+  return Pressure(idx)/(parameter.R * Density(idx));
 }
 
 /**
@@ -314,6 +312,7 @@ void ProblemData::setInitialCondition(const double gamma,
   double temperaturel = total_temperature / insidel;
   double densityl = pressurel / (R* temperaturel);
   double velocityl = std::sqrt(gamma*pressurel/densityl) * machl;
+  double energy_per_unit_massl = pressurel / (parameter.gamma - 1) / densityl;
 
   boundary_velocity = velocityl;
   boundary_density = densityl;
@@ -328,6 +327,7 @@ void ProblemData::setInitialCondition(const double gamma,
   std::cout << "density L     = " << densityl << std::endl;
   std::cout << "boundary Q(0) = " << boundary_Ql(0) << std::endl;
   std::cout << "velocity L    = " << velocityl << std::endl;
+  std::cout << "Energy L      = " << energy_per_unit_massl << std::endl;
   std::cout << "boundary Q(1) = " << boundary_Ql(1) << std::endl;
   std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
   std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
@@ -342,6 +342,8 @@ void ProblemData::setInitialCondition(const double gamma,
   double temperaturer = total_temperature /insider;
   double densityr = pressurer / (R* temperaturer);
   double velocityr = std::sqrt(gamma*pressurer/densityr) * machr;
+  double energy_per_unit_massr = pressurer / (parameter.gamma - 1) / densityr;
+
 
   boundary_pressure = pressurer;
 
@@ -353,6 +355,7 @@ void ProblemData::setInitialCondition(const double gamma,
   std::cout << "density R     = " << densityr << std::endl;
   std::cout << "boundary Q(2) = " << boundary_Qr(2) << std::endl;
   std::cout << "velocity R    = " << velocityr << std::endl;
+  std::cout << "Energy L      = " << energy_per_unit_massl << std::endl;
   std::cout << "boundary E(2) = " << boundary_Er(2) << std::endl;
   std::cout << "____________---________________" << std::endl;
 
@@ -470,11 +473,11 @@ double ProblemData::nonlinearFunctionToSolveP1Deriv(double M, double s_star, dou
 void ProblemData::printQuantities(std::string f_name){
 
   std::ofstream a_file;
-  a_file.open(f_name+ "_mach.csv", std::ios::out | std::ios::trunc);
+  a_file.open(f_name+ "_velocity.csv", std::ios::out | std::ios::trunc);
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file <<  " " << Left + (i+1)*dx  << ", " << Mach(i) << std::endl;
+    a_file <<  " " << Left + (i+1)*dx  << ", " << Velocity(i) << std::endl;
   }
   a_file.close();
 

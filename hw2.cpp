@@ -88,7 +88,7 @@ int main(){
 //  std::cout << "testing pressure at L endpoint match initial pressure?" << std::endl;
 //  std::cout << data1.Pressure(-1) << std::endl;
 
-  //data1.printQuantities("initial_problem");
+  data1.printQuantities("initial_problem");
 //
 //  problem1.calculateSensorContributions();
 //  std::cout << "-----------------------------" << std::endl;
