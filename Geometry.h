@@ -60,7 +60,7 @@ class ProblemData{
                              const double s_star);
     Eigen::VectorXd getQVect();
     double soundSpeed(const int position);
-    double EnergyPerUnitMass(const int idx);
+    double Energy(const int idx);
     Eigen::Vector3d Q(const int idx);
     void printQuantities(std::string f_name);
 
@@ -92,9 +92,15 @@ class ProblemData{
     bool outOfBounds(int idx);
 };
 
-//FIXME test this.
-double ProblemData::EnergyPerUnitMass(const int idx){
-      return Q(idx)(2)/Q(idx)(0);
+/**
+ * this function returns the energy of the system
+ *
+ *              e = epsilon + v^2/2
+ *
+ * which can be determined from Q by dividing the first and last entries in vector Q.
+ */
+double ProblemData::Energy(const int idx){
+      return Q(idx)(2)/S(X(idx));
 }
 
 /**
@@ -106,7 +112,7 @@ bool ProblemData::outOfBounds(int idx){
 }
 
 /**
- * Returns Q at a specified index, supporting indexing out of bounds by simply using
+ * Returns constant access to Q at a specified index, supporting indexing out of bounds by simply using
  * a constant extrapolation.
  */
 const Eigen::Vector3d& ProblemData::operator[](const int idx) const{
@@ -201,7 +207,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
   {
     E(0) = Density(idx) * Velocity(idx) * S(X(idx));
     E(1) = (Density(idx) * Velocity(idx) * Velocity(idx) +  Pressure(idx)) * S(X(idx));
-    E(2) = Velocity(idx) * (Density(idx) * EnergyPerUnitMass(idx) + Pressure(idx)) * S(X(idx));
+    E(2) = Velocity(idx) * (Density(idx) * Energy(idx) + Pressure(idx)) * S(X(idx));
 
     return E;
   }
@@ -211,7 +217,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-  return (parameter.gamma -1) * Density(idx) * EnergyPerUnitMass(idx);
+  return (parameter.gamma -1) * (Energy(idx) - 1/(2*Density(idx)) * (std::pow(Density(idx) * Velocity(idx), 2)));
 }
 
 /**
@@ -312,7 +318,8 @@ void ProblemData::setInitialCondition(const double gamma,
   double temperaturel = total_temperature / insidel;
   double densityl = pressurel / (R* temperaturel);
   double velocityl = std::sqrt(gamma*pressurel/densityl) * machl;
-  double energy_per_unit_massl = pressurel / (parameter.gamma - 1) / densityl;
+  double epsilonl = parameter.R/(parameter.gamma - 1) * pressurel / (densityl * parameter.R);
+  double el = densityl * (epsilonl + 0.5 * std::pow(velocityl,2));
 
   boundary_velocity = velocityl;
   boundary_density = densityl;
@@ -325,9 +332,9 @@ void ProblemData::setInitialCondition(const double gamma,
 
   std::cout << "pressure L    = " << pressurel << std::endl;
   std::cout << "density L     = " << densityl << std::endl;
-  std::cout << "boundary Q(0) = " << boundary_Ql(0) << std::endl;
+  std::cout << "sound speed L = " << std::sqrt(parameter.gamma * pressurel / densityl) << std::endl;
   std::cout << "velocity L    = " << velocityl << std::endl;
-  std::cout << "Energy L      = " << energy_per_unit_massl << std::endl;
+  std::cout << "Energy L      = " << el << std::endl;
   std::cout << "boundary Q(1) = " << boundary_Ql(1) << std::endl;
   std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
   std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
@@ -342,8 +349,8 @@ void ProblemData::setInitialCondition(const double gamma,
   double temperaturer = total_temperature /insider;
   double densityr = pressurer / (R* temperaturer);
   double velocityr = std::sqrt(gamma*pressurer/densityr) * machr;
-  double energy_per_unit_massr = pressurer / (parameter.gamma - 1) / densityr;
-
+  double epsilonr = parameter.R/(parameter.gamma - 1) * pressurer / (densityl * parameter.R);
+  double er = densityl * (epsilonr + 0.5 * std::pow(velocityl,2));
 
   boundary_pressure = pressurer;
 
@@ -353,9 +360,9 @@ void ProblemData::setInitialCondition(const double gamma,
 
   std::cout << "pressure R    = " << pressurer << std::endl;
   std::cout << "density R     = " << densityr << std::endl;
-  std::cout << "boundary Q(2) = " << boundary_Qr(2) << std::endl;
+  std::cout << "sound speed R = " << std::sqrt(parameter.gamma * pressurer / densityr) << std::endl;
   std::cout << "velocity R    = " << velocityr << std::endl;
-  std::cout << "Energy L      = " << energy_per_unit_massl << std::endl;
+  std::cout << "Energy L      = " << er/densityl << std::endl;
   std::cout << "boundary E(2) = " << boundary_Er(2) << std::endl;
   std::cout << "____________---________________" << std::endl;
 
@@ -378,9 +385,12 @@ void ProblemData::setInitialCondition(const double gamma,
   //initialize the entire domain to the same values as the boundary, with the proper
   for (int i = 0; i < q.size(); ++i)
     {
-      q[i](0) = boundary_Ql(0)*S(x(i))/S(Left) ;
-      q[i](1) = boundary_Ql(1)*S(x(i))/S(Left) ;
-      q[i](2) = boundary_Ql(2)*S(x(i))/S(Left) ;
+	  q[i](0) = densityl * S(X(i));
+	  q[i](1) = densityl * velocityl * S(X(i));
+	  q[i](2) = er * S(X(i));
+//      q[i](0) = boundary_Ql(0)*S(x(i))/S(Left) ;
+//      q[i](1) = boundary_Ql(1)*S(x(i))/S(Left) ;
+//      q[i](2) = boundary_Ql(2)*S(x(i))/S(Left) ;
       std::cout << q[i] << std::endl;
     }
 

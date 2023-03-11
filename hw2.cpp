@@ -35,7 +35,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_nodes = 9;
+	int num_nodes = 6;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -73,6 +73,11 @@ int main(){
 	QuasiEuler problem1(&data1, 0.5);
 	Solver solver(&data1, &problem1);
 
+	for (int i = -1; i< data1.x.size() + 1; ++i)
+	{
+		std::cout << "S(" << data1.X(i) << ") is " << data1.S(data1.X(i)) << std::endl;
+	}
+
     data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
 
   std::cout << "-----------test X(*)-----------" << std::endl;
@@ -81,6 +86,11 @@ int main(){
   std::cout << data1.X(10) << std::endl;
   std::cout << "-----------------------------" << std::endl;
   std::cout << data1.X(9) << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing initial energy per unit mass " << std::endl;
+  std::cout << data1.Energy(0) << std::endl;
+  std::cout << data1.Energy(5) << std::endl;
+  std::cout << "-----------------------------" << std::endl;
   std::cout << "-----------------------------" << std::endl;
   std::cout << "testing get_Q " << std::endl;
   std::cout << data1.getQVect() << std::endl;
