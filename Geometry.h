@@ -297,6 +297,8 @@ void ProblemData::setInitialCondition(const double gamma,
                                         const double total_temperature,
                                         const double R,
                                       const double s_star){
+  Eigen::Vector3d boundary;
+
   //calculate mach numbers on left and right of intervals.
   double machl = 0.1;
   double machr = machl;
@@ -324,20 +326,17 @@ void ProblemData::setInitialCondition(const double gamma,
   boundary_velocity = velocityl;
   boundary_density = densityl;
 
-  boundary_Ql(0) = densityl * S(Left);
-  boundary_Ql(1) = densityl * velocityl * S(Left);
-
-  boundary_El(0) = boundary_Ql(1);
-  boundary_El(1) = std::pow(boundary_Ql(1),2)/boundary_Ql(0) + pressurel*S(Left);
+  boundary(0) = densityl;
+  boundary(1) = densityl * velocityl;
 
   std::cout << "pressure L    = " << pressurel << std::endl;
   std::cout << "density L     = " << densityl << std::endl;
   std::cout << "sound speed L = " << std::sqrt(parameter.gamma * pressurel / densityl) << std::endl;
   std::cout << "velocity L    = " << velocityl << std::endl;
-  std::cout << "Energy L      = " << el << std::endl;
-  std::cout << "boundary Q(1) = " << boundary_Ql(1) << std::endl;
-  std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
-  std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
+  std::cout << "Energy L      = " << el/densityl << std::endl;
+//  std::cout << "boundary Q(1) = " << boundary_Ql(1) << std::endl;
+//  std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
+//  std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
 
 
   //calculate pressure and velocity on right of the interval, and put into boundary_Qr
@@ -354,31 +353,36 @@ void ProblemData::setInitialCondition(const double gamma,
 
   boundary_pressure = pressurer;
 
-  boundary_Qr(2) = densityr * (pressurer + velocityr*velocityr /2) * S(Right);
-
-  boundary_Er(2) = velocityr * (densityr * (pressurer + velocityr*velocityr /2) + pressurer) * S(Right);
 
   std::cout << "pressure R    = " << pressurer << std::endl;
   std::cout << "density R     = " << densityr << std::endl;
   std::cout << "sound speed R = " << std::sqrt(parameter.gamma * pressurer / densityr) << std::endl;
   std::cout << "velocity R    = " << velocityr << std::endl;
-  std::cout << "Energy L      = " << er/densityl << std::endl;
+  std::cout << "Energy R      = " << er/densityl << std::endl;
   std::cout << "boundary E(2) = " << boundary_Er(2) << std::endl;
   std::cout << "____________---________________" << std::endl;
 
   //initialize the other components of the boundary vectors with the proper values.
 
-  boundary_Ql(2) = densityl * (pressurer + velocityl*velocityl/2) *S(Left);
-  boundary_El(2) = velocityl * (densityl * (pressurer + velocityl*velocityl/2) + pressurer) * S(Left);
+  boundary_Ql(0) = boundary_density * S(Left);
+  boundary_Ql(1) = boundary_density * boundary_velocity * S(Left);
+  boundary_Ql(2) = el * S(Left);
 
-  boundary_Qr(0) = densityl * S(Right);
-  boundary_Qr(1) = densityl * velocityl * S(Right);
-  boundary_Er(0) = boundary_Qr(1);
-  boundary_Er(1) = densityl * velocityl * velocityl + pressurel;
+  boundary_El(0) = boundary_density * boundary_velocity * S(Left);
+  boundary_El(1) = (boundary_density * boundary_velocity + boundary_pressure) * S(Left);
+  boundary_El(2) = boundary_velocity * (el  + boundary_pressure) * S(Left);
 
-  std::cout << "_____Initial vectors___________" << std::endl;
-  std::cout << boundary_Ql << std::endl << boundary_Qr << std::endl;
-  std::cout << boundary_El << std::endl << boundary_Er << std::endl;
+  boundary_Qr = boundary_Ql*S(Right)/S(Left);
+  boundary_Er = boundary_El*S(Right)/S(Left);
+  //the above line only applies to the first two elements, the last one needs modified to use er
+  boundary_Er(2) = boundary_velocity * (er  + boundary_pressure) * S(Right);
+
+  //output the vectors on the boundary, should only differ by S(Right)/S(Left)
+
+  std::cout << "_____Initial vectors Qr Ql___________" << std::endl;
+  std::cout << boundary_Ql << std::endl << " + " << std::endl <<  boundary_Qr << std::endl;
+  std::cout << "_____Initial vectors Er El___________" << std::endl;
+  std::cout << boundary_El << std::endl << " + " << std::endl << boundary_Er << std::endl;
   std::cout << "_______________________________" << std::endl;
 
   /*FIXME why are the values not zero?? Probably need to initialize with the primitive variables densityl, velocityl, and pressurer*/
