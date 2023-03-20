@@ -218,7 +218,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
   {
     E(0) = Density(idx) * Velocity(idx) * S(X(idx));
     E(1) = (Density(idx) * Velocity(idx) * Velocity(idx) +  Pressure(idx)) * S(X(idx));
-    E(2) = Velocity(idx) * (Density(idx) * Energy(idx) + Pressure(idx)) * S(X(idx));
+    E(2) = Velocity(idx) * (Energy(idx) + Pressure(idx)) * S(X(idx));
 
     return E;
   }
@@ -446,6 +446,8 @@ void ProblemData::setInitialCondition(const double gamma,
 
   std::cout << "_____Initial vectors Ql Qr___________" << std::endl;
   std::cout << boundary_Ql << std::endl << " + " << std::endl <<  boundary_Qr << std::endl;
+  std::cout << "_____Initial vectors El Er___________" << std::endl;
+  std::cout << boundary_El << std::endl << " + " << std::endl <<  boundary_Er << std::endl;
 
 
   //double a2 = std::sqrt(gamma*R* temperature);

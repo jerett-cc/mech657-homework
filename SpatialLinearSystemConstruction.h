@@ -297,13 +297,13 @@ void Solver::calcDe(){
 //    b(j+1) = e2/(2);
 //    b(j+2) = e3/(2);
 //    std::cout << "j is " << j << std::endl;
-    b(j) = e1/(2*data->dx);
-    b(j+1) = e2/(2*data->dx);
-    b(j+2) = e3/(2*data->dx);
+    b(j) = e1;
+    b(j+1) = e2;
+    b(j+2) = e3;
     j+=3;
   }
-  std::cout << "dex is " << std::endl << -1*problem->dt * b << std::endl;
-  b = -1*problem->dt * b;
+  std::cout << "dex is " << std::endl << -1*problem->dt / (2*data->dx) * b << std::endl;
+  b = -1*problem->dt / (2*data->dx) * b;
 }
 
 /**
