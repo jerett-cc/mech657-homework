@@ -8,3 +8,4 @@
 #ignore extensions
 *.out
 *.csv
+*.txt

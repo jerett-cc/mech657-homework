@@ -35,7 +35,7 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_nodes = 6;
+	int num_nodes = 20;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -109,13 +109,13 @@ int main(){
 //  std::cout << "testing local flux jacobian" << std::endl;
 //  std::cout << problem1.calculateLocalFluxJacobian(0) << std::endl;
 
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << "testing setup A " << std::endl;
-//  solver.setup_A();
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing setup A " << std::endl;
+  solver.setup_A();
 
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << "testing setup b " << std::endl;
-//  solver.calcDe();
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing setup b " << std::endl;
+  solver.calcDe();
 //  solver.calcDx();
 
 //   solver.reinit();

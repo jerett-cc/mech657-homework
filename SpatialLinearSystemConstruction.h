@@ -96,14 +96,14 @@ void Solver::solveSystem(){
  *this function calculates the contribution of En and Dx and adds it to b */
 void Solver::setup_b(){
   calcDe();
-  calcDx();
+//  calcDx();
 }
 
 /**
  *this function calculates An and L and adds them to A. */
 void Solver::setup_A(){
   calculateAndAddSpatialMatrix();
-  calculateAndAddL();
+//  calculateAndAddL();
 };
 /**
  * this function calculates all the local flux jacobians and does an second order approx
@@ -114,7 +114,7 @@ void Solver::calculateAndAddSpatialMatrix(){
   int local_matrix_size = data->q[0].size();
   Eigen::MatrixXd Ai(local_matrix_size, local_matrix_size);
   Eigen::MatrixXd Ai_n(local_matrix_size, local_matrix_size);
-
+  std::cout << "Local flux at node 0 is: \n" << problem->calculateLocalFluxJacobian(0) << std::endl;
   for (int i = 0; i < data->q.size()-1; ++i)//loop through all nodes but last one
   {
 //    std::cout<< i << std::endl;
@@ -129,7 +129,7 @@ void Solver::calculateAndAddSpatialMatrix(){
     //TODO divide by dx here??
     A.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5*problem->dt/data->dx*Ai;
   }
-//    std::cout << "System matrix excluding first and last " << std::endl << A << std::endl;
+    std::cout << "System matrix " << std::endl << A << std::endl;
 }
 
 /**
