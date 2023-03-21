@@ -54,6 +54,10 @@ class ProblemData{
     double Temperature(const int idx);//todo make temp at each node point in interior
     double Mach(const int idx);
     double Velocity(const int idx);
+    double get_q1(const int idx);
+    double get_q2(const int idx);
+    double get_q3(const int idx);
+
     double initial_pressure;
 
 
@@ -97,6 +101,7 @@ class ProblemData{
     double Left, Right;
     int highest_index, problem_size, R_index, L_index;
     double S(const double x);
+    double Sprime(const double x);
     double X(const int idx);
     double nonlinearFunctionToSolveP1(double M,double s_star, double gamma, double x);
     double nonlinearFunctionToSolveP1Deriv(double M,double s_star, double gamma, double x);
@@ -185,7 +190,7 @@ void ProblemData::operator+=(const std::vector<Eigen::Vector3d> &a_vec){
 
 /**
  * return Q as a single vector, rather than a std::vector of 3 component vectors
- * this would be the points on the interior, FIXME test this
+ * this would be the points on the interior
  */
 Eigen::VectorXd ProblemData::getQVect(){
   Eigen::VectorXd tmp = Eigen::VectorXd::Zero(problem_size);
@@ -228,7 +233,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-  return (parameter.gamma -1) * (Energy(idx) - 1/(2*Density(idx)) * (std::pow(Density(idx) * Velocity(idx), 2)));
+  return (parameter.gamma -1) * (Energy(idx) - Density(idx)/2 * (std::pow(Density(idx) * Velocity(idx), 2)));
 }
 
 /**
@@ -491,6 +496,30 @@ double ProblemData::S(const double x){
     }
     else return 0.0;
 }
+
+double ProblemData::Sprime(const double x){
+  if(x < 5)
+  {
+    return -3./5.*(1.-x/5.);
+  }
+  else
+  {
+    return -1./5. * (1.-x/5.);
+  }
+}
+
+double ProblemData::get_q1(const int idx){
+  return Q(idx)(0)/S(X(idx));
+}
+
+double ProblemData::get_q2(const int idx){
+  return Q(idx)(1)/S(X(idx));
+}
+
+double ProblemData::get_q3(const int idx){
+  return Q(idx)(2)/S(X(idx));
+}
+
 
 double ProblemData::nonlinearFunctionToSolveP1(double M, double s_star, double gamma, double x){
 
