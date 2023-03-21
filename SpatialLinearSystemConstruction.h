@@ -53,12 +53,13 @@ class Solver{
     void setup_A();
     void calculateAndAddSpatialMatrix();
     void calculateAndAddL();
+    void calculateAndAddS();
     void reinit();
 
     void setup_b();
     void calcDe();
     void calcDx();
-
+    void calcSx();
 };
 
 void Solver::setupSystem(){
@@ -96,14 +97,15 @@ void Solver::solveSystem(){
  *this function calculates the contribution of En and Dx and adds it to b */
 void Solver::setup_b(){
   calcDe();
-//  calcDx();
+  //calcDx();
 }
 
 /**
  *this function calculates An and L and adds them to A. */
 void Solver::setup_A(){
   calculateAndAddSpatialMatrix();
-//  calculateAndAddL();
+  //calculateAndAddL();
+  calculateAndAddS();
 };
 /**
  * this function calculates all the local flux jacobians and does an second order approx
@@ -337,6 +339,37 @@ void Solver::calcDx(){
   std::cout << "E-Dx is \n" << b << std::endl;
 
 }
+
+void Solver::calcSx(){
+  Eigen::VectorXd tmp = Eigen::VectorXd::Zero(data->getQVect().size());
+  for(unsigned int i = 0; i < data->q.size(); ++i)
+  {
+    tmp(3*i) = 0;
+    tmp(3*i+1) = data->Pressure(i) * data->Sprime(data->X(i));
+    tmp(3*i+2) = 0;
+  }
+}
+
+void Solver::calculateAndAddS(){
+  int local_matrix_size = data->q[0].size();
+  Eigen::MatrixXd local_S_matrix;
+
+  local_S_matrix = Eigen::MatrixXd::Zero(local_matrix_size, local_matrix_size);
+  reinit();
+  for(unsigned int i = 0; i < data->q.size(); ++i)
+  {
+    int ier = 3*i;
+    local_S_matrix(1,0) = -(data->parameter.gamma-1)/2 * data->get_q2(i) * data->get_q2(i);
+    local_S_matrix(1,1) = -(data->parameter.gamma-1)/2 * data->get_q1(i) * data->get_q2(i);
+    local_S_matrix(1,2) = -(data->parameter.gamma-1);
+    std::cout << "S matrix locally at index " << i << " is \n" << local_S_matrix << std::endl;
+    std::cout << "Sprime is " << data->Sprime(data->X(i)) << std::endl;
+    std::cout << "X is " << data->X(i) << std::endl;
+    A.block<3,3>(ier, ier) += -problem->dt * local_S_matrix * data->Sprime(data->X(i));
+  }
+  std::cout << "A addition is \n" << A << std::endl;
+}
+
 /**
  *reinitializes A to identity and b to zero, use after each iteration. */
 void Solver::reinit(){
