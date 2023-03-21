@@ -233,7 +233,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-  return (parameter.gamma -1) * (Energy(idx) - Density(idx)/2 * (std::pow(Density(idx) * Velocity(idx), 2)));
+  return (parameter.gamma -1.0) * (Energy(idx) - 0.5/Density(idx) * (std::pow(Density(idx) * Velocity(idx), 2)));
 }
 
 /**
@@ -540,7 +540,7 @@ double ProblemData::nonlinearFunctionToSolveP1Deriv(double M, double s_star, dou
 void ProblemData::printQuantities(std::string f_name){
 
   std::ofstream a_file;
-  a_file.open(f_name+ "_velocity.csv", std::ios::out | std::ios::trunc);
+  a_file.open(f_name+ "_velocity.out", std::ios::out | std::ios::trunc);
 
   for (int i = L_index; i< R_index+1; ++i)
   {
@@ -558,7 +558,7 @@ void ProblemData::printQuantities(std::string f_name){
 //  a_file1.close();
 
   std::ofstream a_file2;
-  a_file2.open(f_name+ "_density.csv", std::ios::out | std::ios::trunc);
+  a_file2.open(f_name+ "_density.out", std::ios::out | std::ios::trunc);
 
   for (int i = L_index; i< R_index+1; ++i)
   {
@@ -567,7 +567,7 @@ void ProblemData::printQuantities(std::string f_name){
   a_file2.close();
 
   std::ofstream a_file3;
-  a_file3.open(f_name+ "_pressure.csv", std::ios::out | std::ios::trunc);
+  a_file3.open(f_name+ "_pressure.out", std::ios::out | std::ios::trunc);
 
   for (int i = L_index; i< R_index+1; ++i)
   {
