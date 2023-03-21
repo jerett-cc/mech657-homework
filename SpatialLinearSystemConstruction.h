@@ -98,6 +98,7 @@ void Solver::solveSystem(){
 void Solver::setup_b(){
   calcDe();
   //calcDx();
+  calcSx();
 }
 
 /**
@@ -348,6 +349,11 @@ void Solver::calcSx(){
     tmp(3*i+1) = data->Pressure(i) * data->Sprime(data->X(i));
     tmp(3*i+2) = 0;
   }
+  std::cout << "pressure at index 0 is " << data->Pressure(0) << std::endl;
+  std::cout << "B contributions to RHS\n" << problem->dt * tmp << std::endl;
+
+  b += -problem->dt * tmp;
+
 }
 
 void Solver::calculateAndAddS(){
@@ -362,12 +368,12 @@ void Solver::calculateAndAddS(){
     local_S_matrix(1,0) = -(data->parameter.gamma-1)/2 * data->get_q2(i) * data->get_q2(i);
     local_S_matrix(1,1) = -(data->parameter.gamma-1)/2 * data->get_q1(i) * data->get_q2(i);
     local_S_matrix(1,2) = -(data->parameter.gamma-1);
-    std::cout << "S matrix locally at index " << i << " is \n" << local_S_matrix << std::endl;
-    std::cout << "Sprime is " << data->Sprime(data->X(i)) << std::endl;
-    std::cout << "X is " << data->X(i) << std::endl;
+    //std::cout << "S matrix locally at index " << i << " is \n" << local_S_matrix << std::endl;
+    //std::cout << "Sprime is " << data->Sprime(data->X(i)) << std::endl;
+    //std::cout << "X is " << data->X(i) << std::endl;
     A.block<3,3>(ier, ier) += -problem->dt * local_S_matrix * data->Sprime(data->X(i));
   }
-  std::cout << "A addition is \n" << A << std::endl;
+  //std::cout << "A addition is \n" << A << std::endl;
 }
 
 /**
