@@ -11,6 +11,7 @@
 #include<regex>
 
 #include<iostream>
+#include<iomanip>
 
 #include "../Eigen/Dense"
 #include "test_with_exact.h"
@@ -93,7 +94,12 @@ class ProblemData{
     }
 
     double convert_pressure_to_energy(const double pressure, const double density, const double velocity, const double gamma){
-      return pressure/(density*(gamma-1)) + velocity*velocity/2;
+      std::cout
+                << pressure << std::endl
+                << density << std::endl
+                << velocity << std::endl
+                << gamma << std::endl;
+      return pressure/(density*(gamma-1.0)) + 0.5 * velocity*velocity;
     }
 
 //TODO: need to add an update boundary values function
@@ -233,7 +239,8 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-  return (parameter.gamma -1.0) * (Energy(idx) - 0.5/Density(idx) * (std::pow(Density(idx) * Velocity(idx), 2)));
+  //return (parameter.gamma -1.0) * (Energy(idx) - 0.5/Density(idx) * (std::pow(Density(idx) * Velocity(idx), 2)));
+return (parameter.gamma -1.0) * (Energy(idx) - 0.5/Density(idx) * Density(idx) * Velocity(idx) * Density(idx) * Velocity(idx));
 }
 
 /**
@@ -411,7 +418,7 @@ void ProblemData::setInitialCondition(const double gamma,
 //    }
 
 
-#if 1
+#if 0
   std::cout << "______________Initializing with exact solution____________" << std::endl;
   Eigen::VectorXd density_vec(20+2);
   Eigen::VectorXd velocity_vec(20+2);
@@ -449,6 +456,43 @@ void ProblemData::setInitialCondition(const double gamma,
 
 #endif
 
+#if 1
+  std::cout << "______________Initializing with exact solution____________" << std::endl;
+  Eigen::VectorXd density_vec(20+2);
+  Eigen::VectorXd velocity_vec(20+2);
+  Eigen::VectorXd pressure_vec(20+2);
+  Eigen::VectorXd energy_vec(20+2);
+  get_data("density_number.txt", density_vec);
+  get_data("velocity_number.txt", velocity_vec);
+  get_data("pressure_number.txt", pressure_vec);
+  for(unsigned int i = 0; i<q.size(); i++)
+  {
+    q[i](0) = density_vec(i+1)*S(X(i));
+    q[i](1) = density_vec(i+1)*velocity_vec(i+1)*S(X(i));
+    q[i](2) = density_vec(i+1)*convert_pressure_to_energy(pressure_vec(i+1), density_vec(i+1), velocity_vec(i+1), parameter.gamma)*S(X(i));
+    std::cout << q[i] << std::endl;
+  }
+
+
+  boundary_Ql(0) = density_vec(0)*S(X(-1));//prescribed bc
+  boundary_Ql(1) = density_vec(0)*velocity_vec(0)*S(X(-1));
+  boundary_Ql(2) = density_vec(0)*convert_pressure_to_energy(pressure_vec(0), density_vec(0), velocity_vec(0), parameter.gamma)*S(X(-1));
+
+  boundary_Qr(0) = density_vec(21)*S(X(22));//prescribed bc
+  boundary_Qr(1) = density_vec(21)*velocity_vec(21)* S(X(22));
+  boundary_Qr(2) = density_vec(21)*convert_pressure_to_energy(pressure_vec(21), density_vec(21), velocity_vec(21), parameter.gamma)*S(X(22));
+
+  boundary_El(0) = density_vec(0) * velocity_vec(0) * S(X(-1));
+  boundary_El(1) = (density_vec(0) * velocity_vec(0) * velocity_vec(0) + pressure_vec(0))* S(X(-1));
+  double energyl = density_vec(0) * (pressure_vec(0)/(density_vec(0) * (parameter.gamma - 1)) + std::pow(velocity_vec(0),2)/2);
+  boundary_El(2) = velocity_vec(0) * (energyl + pressure_vec(0)) * S(X(-1));
+
+  boundary_Er(0) = density_vec(21) * velocity_vec(21) * S(X(22));
+  boundary_Er(1) = (density_vec(21) * velocity_vec(21) * velocity_vec(21) + pressure_vec(21))* S(X(22));
+  double energyr = density_vec(21) * (pressure_vec(21)/(density_vec(21) * (parameter.gamma - 1)) + std::pow(velocity_vec(21),2)/2);
+  boundary_Er(2) = velocity_vec(21) * (energyr + pressure_vec(21)) * S(X(22));
+
+#endif
   std::cout << "_____Initial vectors Ql Qr___________" << std::endl;
   std::cout << boundary_Ql << std::endl << " + " << std::endl <<  boundary_Qr << std::endl;
   std::cout << "_____Initial vectors El Er___________" << std::endl;
@@ -486,13 +530,13 @@ void ProblemData::setInitialCondition(const double gamma,
 }
 
 double ProblemData::S(const double x){
-  if(x <= 5)
+  if(x <= 5.0)
     {
-      return 1.0 + 1.5*std::pow(1-x/5,2);
+      return 1.0 + 1.5*std::pow((1.0-x/5.0),2);
     }
     else if(x >5)
     {
-      return 1.0 + 0.5*std::pow(1-x/5,2);
+      return 1.0 + 0.5*std::pow((1.0-x/5.0),2);
     }
     else return 0.0;
 }
@@ -544,25 +588,25 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file <<  " " << Left + (i+1)*dx  << ", " << Velocity(i) << std::endl;
+    a_file << std::setprecision(16) << Velocity(i) << std::endl;
   }
   a_file.close();
 
-//  std::ofstream a_file1;
-//  a_file1.open(f_name+ "_temp.csv", std::ios::out | std::ios::trunc);
-//
-//  for (int i = L_index; i< R_index+1; ++i)
-//  {
-//    a_file1 <<  " " << X(i)  << ", " << Temperature(i) << std::endl;
-//  }
-//  a_file1.close();
+  std::ofstream a_file1;
+  a_file1.open(f_name+ "_energy.out", std::ios::out | std::ios::trunc);
+
+  for (int i = L_index; i< R_index+1; ++i)
+  {
+    a_file1 <<  std::setprecision(16) << Energy(i)/Density(i) << std::endl;
+  }
+  a_file1.close();
 
   std::ofstream a_file2;
   a_file2.open(f_name+ "_density.out", std::ios::out | std::ios::trunc);
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file2 <<  " " << Left + (i+1)*dx  << ", " << Density(i) << std::endl;
+    a_file2 << std::setprecision(16) << Density(i) << std::endl;
   }
   a_file2.close();
 
@@ -571,9 +615,20 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 <<  " " << Left + (i+1)*dx  << ", " << Pressure(i) <<std::endl;
+    a_file3 << std::setprecision(16) <<  Pressure(i) <<std::endl;
   }
   a_file3.close();
+
+
+  std::ofstream a_file4;
+  a_file3.open(f_name+ "_convert.out", std::ios::out | std::ios::trunc);
+
+  for (int i = 0; i< R_index; ++i)
+  {
+    a_file3 << std::setprecision(16) <<  convert_pressure_to_energy(Pressure(i), Density(i), Velocity(i), parameter.gamma) <<std::endl;
+  }
+  a_file3.close();
+
 
 }
 

@@ -7,6 +7,7 @@
 #include "../Eigen/Sparse"
 #include "QuasiEuler.h"
 #include "Geometry.h"
+#include <iomanip>
 
 // needs to calculate the matrix, calculate the RHS, and solve the system for deltaQ
 
@@ -63,6 +64,7 @@ class Solver{
 };
 
 void Solver::setupSystem(){
+  problem->calculateSensorContributions();
   setup_A();
   setup_b();
 }
@@ -117,7 +119,9 @@ void Solver::calculateAndAddSpatialMatrix(){
   int local_matrix_size = data->q[0].size();
   Eigen::MatrixXd Ai(local_matrix_size, local_matrix_size);
   Eigen::MatrixXd Ai_n(local_matrix_size, local_matrix_size);
-  std::cout << "Local flux at node 0 is: \n" << problem->calculateLocalFluxJacobian(0) << std::endl;
+  Eigen::MatrixXd TOSHOW = Eigen::MatrixXd::Zero(data->getQVect().size(), data->getQVect().size());
+
+
   for (int i = 0; i < data->q.size()-1; ++i)//loop through all nodes but last one
   {
 //    std::cout<< i << std::endl;
@@ -128,11 +132,14 @@ void Solver::calculateAndAddSpatialMatrix(){
 
     assert(sub_index+local_matrix_size + 3<=A.cols() && "indexing outside of bounds in the matrix");
 //        std::cout << "(" << sub_index << " , " <<sub_index+local_matrix_size << ")" << std::endl;
-    A.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5*problem->dt/data->dx *Ai_n;
+    TOSHOW.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5/data->dx *Ai_n;
     //TODO divide by dx here??
-    A.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5*problem->dt/data->dx*Ai;
+    TOSHOW.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5/data->dx*Ai;
   }
-    std::cout << "System matrix " << std::endl << A << std::endl;
+
+  std::cout << "dxA" << std::endl << TOSHOW << std::endl;
+
+  A =  A + problem->dt*TOSHOW;
 }
 
 /**
@@ -276,7 +283,7 @@ void Solver::calculateAndAddL(){
 
   std::cout << result << "\n stencil from e4 and e2 contribution ^^" <<std::endl;
 
-  A += result;
+  A = A + result;
 
 //  std::cout << "A is now " << std::endl << A << std::endl;
 }
@@ -284,29 +291,31 @@ void Solver::calculateAndAddL(){
  * this function should calculate dxE for each node and place that in the vector b
  */
 void Solver::calcDe(){
-//  std::cout << "calc de called here ++++++++++++++++" << std::endl;
+  Eigen::VectorXd DxE = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
   int j = 0;
+  std::cout << "Printing E ____" <<std::endl;
   for(int i = 0; i<data->q.size(); ++i)
   {
-    Eigen::Vector3d Ei= data->E(i+1) - data->E(i-1);
-//    std::cout << "index is " << i <<" next E is \n " << data->E(i+1) << std::endl;
-//    std::cout << "index is " << i <<" previous E is \n " << data->E(i-1) << std::endl;
-    std::cout << "index is " << i <<" Ei is \n " << Ei << std::endl;
-
+    Eigen::Vector3d Ei = data->E(i+1) - data->E(i-1);
+    std::cout << std::setprecision(10) <<  data->E(i) << std::endl;
     double e1 = Ei(0);
     double e2 = Ei(1);
     double e3 = Ei(2);
-//    b(j) = e1/(2);
-//    b(j+1) = e2/(2);
-//    b(j+2) = e3/(2);
-//    std::cout << "j is " << j << std::endl;
-    b(j) = e1;
-    b(j+1) = e2;
-    b(j+2) = e3;
-    j+=3;
+
+    DxE(j) = e1;
+    //DxE(j) = 1;
+    j++;
+    DxE(j) = e2;
+    //DxE(j) = 1;
+    j++;
+    DxE(j) = e3;
+    //DxE(j) = 1;
+    j++;
   }
-  std::cout << "dex is " << std::endl << -1*problem->dt / (2*data->dx) * b << std::endl;
-  b = -1*problem->dt / (2*data->dx) * b;
+  std::cout << "DxE\n" << std::setprecision(16) << DxE/(2.0*data->dx) << std::endl;
+  b = b - problem->dt*DxE/(2.0*data->dx);
+  //std::cout << "h*DxE\n" << std::setprecision(16) << problem->dt*DxE/(2.0*data->dx) << std::endl;
+
 }
 
 /**
@@ -315,6 +324,7 @@ void Solver::calcDe(){
 void Solver::calcDx(){
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());//we will overwrite this could introduce bugs
   std::vector<Eigen::Vector3d> tmp_l(data->q.size());//these are indermediate
+  Eigen::VectorXd c = b;
 
   for(int i = 0; i<data->q.size(); ++i)//loop through all nodes, this is before the last backward differencing.
   {
@@ -330,50 +340,78 @@ void Solver::calcDx(){
   std::cout << "B before \n" << b << std::endl;
   for(int i = 0; i < data->q.size(); ++i )//loop through all nodes
   {
-    for(int j = 0; j<3; ++j)//loop through all components
+    int ier = 3*i;
+    Eigen::Vector3d back_tmph;
+    Eigen::Vector3d back_tmpl;
+    if (i-1 <0)
     {
-      b(i+j) -= 1/data->dx * (tmp_l[i](j) - tmp_l[i-1](j)) - 1/data->dx * (tmp_l[i](j) - tmp_l[i-1](j));
+      back_tmph = 0*tmp_h[i];
+      back_tmpl = 0*tmp_l[i];
     }
+    else
+    {
+      back_tmph = tmp_h[i] - tmp_h[i-1];
+      back_tmpl = tmp_l[i] - tmp_l[i-1];
+    }
+
+      c(ier)     = -problem->dt * (-back_tmph(0) + back_tmpl(0));
+      c(ier + 1) = -problem->dt * (-back_tmph(1) + back_tmpl(1));
+      c(ier + 2) = -problem->dt * (-back_tmph(2) + back_tmpl(2));
+
   }
 
 
-  std::cout << "E-Dx is \n" << b << std::endl;
+  std::cout << "C is \n" << c << std::endl;
+  std::cout << "____________________________\n" << "Q0:\n" << data->Q(0) << std::endl;
+  std::cout<< "Q-1\n" << data->Q(-1) << "\n and Q-2 \n" << data->Q(-2) << std::endl;
+  std::cout<< "Q1\n" << data->Q(1) << "\n and Q2 \n" << data->Q(2) << std::endl;
+
+  //std::cout << "sensor contribution, velosity, and sound speed at index"
 
 }
 
 void Solver::calcSx(){
   Eigen::VectorXd tmp = Eigen::VectorXd::Zero(data->getQVect().size());
+
   for(unsigned int i = 0; i < data->q.size(); ++i)
   {
     tmp(3*i) = 0;
     tmp(3*i+1) = data->Pressure(i) * data->Sprime(data->X(i));
     tmp(3*i+2) = 0;
-  }
-  std::cout << "pressure at index 0 is " << data->Pressure(0) << std::endl;
-  std::cout << "B contributions to RHS\n" << problem->dt * tmp << std::endl;
 
-  b += -problem->dt * tmp;
+    //tmp(3*i) = 1;
+    //tmp(3*i+1) = 1;
+    //tmp(3*i+2) = 1;
+  }
+  //std::cout << "pressure at index 0 is " << data->Pressure(0) << std::endl;
+  std::cout << "S contributions to RHS\n" << std::setprecision(16) << tmp << std::endl;
+
+  b = b + problem->dt * tmp;
 
 }
-
+/**
+ *
+ *Working!
+ *
+ * */
 void Solver::calculateAndAddS(){
   int local_matrix_size = data->q[0].size();
   Eigen::MatrixXd local_S_matrix;
+  Eigen::MatrixXd Sjac = Eigen::MatrixXd::Zero(data->getQVect().size(), data->getQVect().size());
 
   local_S_matrix = Eigen::MatrixXd::Zero(local_matrix_size, local_matrix_size);
-  reinit();
   for(unsigned int i = 0; i < data->q.size(); ++i)
   {
     int ier = 3*i;
-    local_S_matrix(1,0) = -(data->parameter.gamma-1)/2 * data->get_q2(i) * data->get_q2(i);
-    local_S_matrix(1,1) = -(data->parameter.gamma-1)/2 * data->get_q1(i) * data->get_q2(i);
-    local_S_matrix(1,2) = -(data->parameter.gamma-1);
-    //std::cout << "S matrix locally at index " << i << " is \n" << local_S_matrix << std::endl;
-    //std::cout << "Sprime is " << data->Sprime(data->X(i)) << std::endl;
-    //std::cout << "X is " << data->X(i) << std::endl;
-    A.block<3,3>(ier, ier) += -problem->dt * local_S_matrix * data->Sprime(data->X(i));
+    local_S_matrix(1,0) = (data->parameter.gamma-1)/2 * std::pow(data->get_q2(i)/data->get_q1(i),2);
+    local_S_matrix(1,1) = -(data->parameter.gamma-1) * data->get_q2(i)/data->get_q1(i);
+    local_S_matrix(1,2) = (data->parameter.gamma-1.0);
+    Sjac.block<3,3>(ier, ier) += local_S_matrix * data->Sprime(data->X(i));
   }
-  //std::cout << "A addition is \n" << A << std::endl;
+
+  //std::cout << "Sjac is \n" << Sjac << std::endl;
+//TODO add back the dt
+  A = A - problem->dt*Sjac;
 }
 
 /**
