@@ -1,10 +1,11 @@
 close all; clear all; clc;
 
-C = csvread("step-9_velocity.out");
+C = csvread("step-4_velocity.out");
+C1 = csvread("velocity_number.txt");
 
 
 
-B = csvread("step-9_pressure.out");
+B = csvread("step-4_pressure.out");
 Bnew = [ 0, 97239.4
  0.47619, 96514.9
  0.952381, 95585.7
@@ -53,7 +54,10 @@ P =[
 
 figure()
 plot(C(:,1), C(:,2));
+hold on
+plot(C1(:,2), C1(:,1));
 ylabel("velocity")
+legend(["20 grid solution", "actual"])
 
 figure()
 plot(B(:,1), B(:,2));
@@ -70,8 +74,12 @@ legend(["actual", "20 grid solution"])
 % plot(Bnew(:,1), C(:,1));
 % ylabel("temperature in K")
 
-D = csvread("step-99_density.out");
+D = csvread("step-4_density.out");
+D1 = csvread("density_number.txt");
 
 figure()
 plot(D(:,1), D(:,2));
+hold on
+plot(D1(:,2), D1(:,1));
+legend(["calculated", "actual"])
 ylabel("density (kg/m^3)")

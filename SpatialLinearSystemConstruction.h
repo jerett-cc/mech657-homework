@@ -336,6 +336,8 @@ void Solver::calcDx(){
   std::cout<< "Q-1\n" << data->Q(-1) << "\n and Q-2 \n" << data->Q(-2) << std::endl;
   std::cout<< "Q1\n" << data->Q(1) << "\n and Q2 \n" << data->Q(2) << std::endl;
 }
+
+//FIXME: add a description here
 void Solver::XXXcalcDx(){
   Eigen::VectorXd Dx = Eigen::VectorXd::Zero(data->getQVect().size());
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
@@ -343,22 +345,38 @@ void Solver::XXXcalcDx(){
 
   for (unsigned int i = 0; i < data->q.size(); ++i)//loop through all nodes
   {
-    //do as if no boundary cases...
-    double two_gamma_plus  = 0.5*(problem->sensor_contributions(i+1,0) * problem->sigma(i+1)
-                                 - problem->sensor_contributions(i,0) * problem->sigma(i));
-    double two_gamma_minus = 0.5*(problem->sensor_contributions(i,0) * problem->sigma(i)
-                                  - problem->sensor_contributions(i-1,0) * problem->sigma(i-1));
-    double four_gamma_plus = 0.5*(problem->sensor_contributions(i+1,1) * problem->sigma(i+1)
-                                 - problem->sensor_contributions(i,1) * problem->sigma(i));
-    double four_gamma_minus = 0.5*(problem->sensor_contributions(i+1,1) * problem->sigma(i+1)
-                                   - problem->sensor_contributions(i,1) * problem->sigma(i));
-    tmp_h[i] = problem->
+    //start at 1, end at size
+    int sensor_node = i+1;
+    //special case for first node
+//    if (i-1 < 0)
+//    {
+//
+//    }
+    double ind = i;
+    //do as if no boundary cases... then treat boundary cases differently.
+    double two_gamma_plus  = 0.5*(problem->sensor_contributions(sensor_node+1,0) * problem->sigma(i+1)
+                                 - problem->sensor_contributions(sensor_node,0) * problem->sigma(i));
+    double two_gamma_minus = 0.5*(problem->sensor_contributions(sensor_node,0) * problem->sigma(i)
+                                  - problem->sensor_contributions(sensor_node-1,0) * problem->sigma(i-1));
+
+    double four_gamma_plus = 0.5*(problem->sensor_contributions(sensor_node+1,1) * problem->sigma(i+1)
+                                 - problem->sensor_contributions(sensor_node,1) * problem->sigma(i));
+    double four_gamma_minus = 0.5*(problem->sensor_contributions(sensor_node,1) * problem->sigma(i)
+                                   - problem->sensor_contributions(sensor_node-1,1) * problem->sigma(i-1));
+
+    tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
+            - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+    tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
+            - four_gamma_minus * problem->highOrderDifferencing(i-1);
     int ier = 3*i;
-    Dx(i) =
-
-
-
+    Dx(ier  ) =  1/data->dx * (tmp_l[i](0) - tmp_h[i](0));
+    Dx(ier+1) =  1/data->dx * (tmp_l[i](1) - tmp_h[i](1));
+    Dx(ier+2) =  1/data->dx * (tmp_l[i](2) - tmp_h[i](2));
   }
+
+  std::cout << "____________Dissipation (divided by dx) is: _______________" << std::endl;
+  std::cout << Dx << std::endl;
+  b = b + problem->dt * Dx;
 }
 
 void Solver::calcSx(){

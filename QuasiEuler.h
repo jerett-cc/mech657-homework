@@ -38,7 +38,7 @@ class QuasiEuler{
     QuasiEuler(ProblemData *Data, double dt)
       : data(Data), dt(dt)
     {
-      sensor_contributions = Eigen::MatrixXd::Zero(data->q.size(), 2);
+      sensor_contributions = Eigen::MatrixXd::Zero(data->q.size()+2, 2);
     }
 
     void calculateSensorContributions();
@@ -62,9 +62,10 @@ void QuasiEuler::calculateSensorContributions(){
   double kappa4 = 0.02;
 
 
-  assert(data->q.size()==sensor_contributions.rows());
+  assert(data->q.size()+2==sensor_contributions.rows());
 
-  for (int i = 0; i < data->q.size(); ++i)//loop through all points on mesh
+  for (int i = data->L_index; i < data->R_index; ++i)
+    //loop through all points on mesh including boundary nodes.
   {
 //    std::cout << "iteration "<< i << "--------------------------------------------" << std::endl;
     double topi = data->Pressure(i+1) - 2*data->Pressure(i) + data->Pressure(i-1);
@@ -91,8 +92,8 @@ void QuasiEuler::calculateSensorContributions(){
     double GAMMA_i_next = std::abs(topi_next/bottomi_next);
     double GAMMA_i_prev = std::abs(topi_prev/bottomi_prev);
     double epsilon2 =  kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
-    sensor_contributions(i,0) = epsilon2;
-    sensor_contributions(i,1) = std::max(0., kappa4 - epsilon2);
+    sensor_contributions(i-data->L_index,0) = epsilon2;
+    sensor_contributions(i-data->L_index,1) = std::max(0., kappa4 - epsilon2);
 
   }
 

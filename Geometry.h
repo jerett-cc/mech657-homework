@@ -94,11 +94,11 @@ class ProblemData{
     }
 
     double convert_pressure_to_energy(const double pressure, const double density, const double velocity, const double gamma){
-      std::cout
-                << pressure << std::endl
-                << density << std::endl
-                << velocity << std::endl
-                << gamma << std::endl;
+//      std::cout
+//                << pressure << std::endl
+//                << density << std::endl
+//                << velocity << std::endl
+//                << gamma << std::endl;
       return pressure/(density*(gamma-1.0)) + 0.5 * velocity*velocity;
     }
 
@@ -385,20 +385,17 @@ void ProblemData::setInitialCondition(const double gamma,
   /*FIXME why are the values not zero?? Probably need to initialize with the primitive variables densityl, velocityl, and pressurer*/
   //initialize the entire domain to the same values as the boundary, with the proper
 
-#if 0
-  std::cout << "______________Initializing with exact solution____________" << std::endl;
-  Eigen::VectorXd density_vec(20+2);
-  Eigen::VectorXd velocity_vec(20+2);
-  Eigen::VectorXd pressure_vec(20+2);
-  Eigen::VectorXd energy_vec(20+2);
-  get_data("density_number.txt", density_vec);
-  get_data("velocity_number.txt", velocity_vec);
-  get_data("pressure_number.txt", pressure_vec);
+#if 1
+  std::cout << "______________Initializing with constant value 1____________" << std::endl;
   for(unsigned int i = 0; i<q.size(); i++)
   {
-    q[i](0) = densityl*S(X(i));
-    q[i](1) = densityl*velocityl*S(X(i));
-    q[i](2) = densityl*convert_pressure_to_energy(pressurer, densityl, velocityl, parameter.gamma)*S(X(i));
+//    q[i](0) = densityl*S(X(i));
+//    q[i](1) = densityl*velocityl*S(X(i));
+//    q[i](2) = densityl*convert_pressure_to_energy(pressurer, densityl, velocityl, parameter.gamma)*S(X(i));
+
+    q[i](0) = 1;
+    q[i](1) = 1;
+    q[i](2) = 1;
     std::cout << q[i] << std::endl;
   }
   boundary_Ql(0) = densityl*S(X(-1));//prescribed bc
@@ -421,7 +418,7 @@ void ProblemData::setInitialCondition(const double gamma,
 
 #endif
 
-#if 1
+#if 0
   std::cout << "______________Initializing with exact solution____________" << std::endl;
   Eigen::VectorXd density_vec(20+2);
   Eigen::VectorXd velocity_vec(20+2);
@@ -551,7 +548,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file << std::setprecision(16) << X(i) << " " << Velocity(i) << std::endl;
+    a_file << std::setprecision(16) << X(i) << ", " << Velocity(i) << std::endl;
   }
   a_file.close();
 
@@ -560,7 +557,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file1 <<  std::setprecision(16) << X(i) << " " << Energy(i)/Density(i) << std::endl;
+    a_file1 <<  std::setprecision(16) << X(i) << ", " << Energy(i)/Density(i) << std::endl;
   }
   a_file1.close();
 
@@ -569,7 +566,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file2 << std::setprecision(16) << X(i) << " " << Density(i) << std::endl;
+    a_file2 << std::setprecision(16) << X(i) << ", " << Density(i) << std::endl;
   }
   a_file2.close();
 
@@ -578,7 +575,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 << std::setprecision(16) << X(i) << " " << Pressure(i) <<std::endl;
+    a_file3 << std::setprecision(16) << X(i) << ", " << Pressure(i) <<std::endl;
   }
   a_file3.close();
 
@@ -588,7 +585,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = 0; i< R_index; ++i)
   {
-    a_file3 << std::setprecision(16) << X(i) << " " << convert_pressure_to_energy(Pressure(i), Density(i), Velocity(i), parameter.gamma) <<std::endl;
+    a_file3 << std::setprecision(16) << X(i) << ", " << convert_pressure_to_energy(Pressure(i), Density(i), Velocity(i), parameter.gamma) <<std::endl;
   }
   a_file3.close();
 
