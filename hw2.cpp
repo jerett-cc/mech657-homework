@@ -36,6 +36,7 @@ int main(){
 	double gamma = 1.4;
 	double R = 287.;
 	int num_nodes = 20;
+  int num_iterations = 0;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -67,10 +68,11 @@ int main(){
 	parameters param1(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_1);
 	parameters param2(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_2);
 
+  //FIXME: what is the 61 here??
 	ProblemData data1(num_nodes,61, Left, Right, param1);
 //	ProblemData data2(num_nodes, 1, Left, Right, param2);
 
-	QuasiEuler problem1(&data1, 0.5);
+	QuasiEuler problem1(&data1, 0.00392486326387686);
 	Solver solver(&data1, &problem1);
 
     std::cout << "S is " << std::endl;
@@ -84,33 +86,33 @@ int main(){
 		std::cout << std::setprecision(16) << data1.X(i) << std::endl;
 	}
 
-    data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
+  data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
 
   std::cout << "-----------test X(*)-----------" << std::endl;
-  std::cout << data1.X(-1) << std::endl;
+  //std::cout << data1.X(-1) << std::endl;
   std::cout << "-----------------------------" << std::endl;
-  std::cout << data1.X(10) << std::endl;
+  //std::cout << data1.X(10) << std::endl;
   std::cout << "-----------------------------" << std::endl;
-  std::cout << data1.X(9) << std::endl;
+  //std::cout << data1.X(9) << std::endl;
   std::cout << "-----------------------------" << std::endl;
   std::cout << "testing initial energy per unit mass " << std::endl;
-  std::cout << data1.Energy(0) << std::endl;
-  std::cout << data1.Energy(5) << std::endl;
+  //std::cout << data1.Energy(0) << std::endl;
+  //std::cout << data1.Energy(5) << std::endl;
   std::cout << "-----------------------------" << std::endl;
   std::cout << "-----------------------------" << std::endl;
   std::cout << "testing get_Q " << std::endl;
-  std::cout << std::setprecision(16) <<  data1.getQVect() << std::endl;
+  //std::cout << std::setprecision(16) <<  data1.getQVect() << std::endl;
   std::cout << "-----------------------------" << std::endl;
 //  std::cout << "testing pressure at L endpoint match initial pressure?" << std::endl;
 //  std::cout << data1.Pressure(-1) << std::endl;
 
   data1.printQuantities("initial_problem");
 
-//  problem1.calculateSensorContributions();
-//  std::cout << "-----------------------------" << std::endl;
-//  std::cout << "testing pressure sensor, expect zero except maybe at end" << std::endl;
-//  std::cout << problem1.sensor_contributions << std::endl;
-//
+  problem1.calculateSensorContributions();
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "testing pressure sensor" << std::endl;
+  std::cout << problem1.sensor_contributions << std::endl;
+
 //  std::cout << "-----------------------------" << std::endl;
 //  std::cout << "testing local flux jacobian" << std::endl;
 //  std::cout << problem1.calculateLocalFluxJacobian(0) << std::endl;
@@ -120,15 +122,10 @@ int main(){
   solver.reinit();
   solver.setupSystem();
 
-  std::cout << "A matrix\n" << std::setprecision(16) << solver.A << std::endl;
-  std::cout<< "rhs b\n"     << std::setprecision(16) << solver.b << std::endl;
-
-
 //   solver.reinit();
 //  data1.E(-1);
 //  data1.E(6);
 //  std::cout << data1.E(0) << std::endl;
-
 //   //solve the system
 //  std::cout << "-----------------------------" << std::endl;
 //  std::cout << "testing solve system " << std::endl;
@@ -136,14 +133,10 @@ int main(){
 //  solver.setupSystem();
 //  solver.solveSystem();
 //  solver.reinit();
-
 //  std::cout << "-----------------------------" << std::endl;
 //  std::cout << "new q is" << std::endl;
 //  std::cout << data1.getQVect() << std::endl;
-
 //  data1.printQuantities("one step");
-
-
 //  std::cout << "-----------------------------" << std::endl;
 //  std::cout << "testing solve system step 2 " << std::endl;
 //  problem1.calculateSensorContributions();
@@ -151,15 +144,13 @@ int main(){
 //  solver.solveSystem();
 //  solver.reinit();
 
-
 //  std::cout << "------------Test 4 iterations----------------" << std::endl;
 //  std::cout << "new q at step 2 is" << std::endl;
 //  std::cout << data1.getQVect() << std::endl;
 
 //  data1.printQuantities("two step");
    std::cout << "Testing 100 iterations" << std::endl;
-
-   for (int i = 0; i<0;++i)
+   for (int i = 0; i<num_iterations;++i)
    {
      solver.reinit();
      problem1.calculateSensorContributions();
@@ -173,7 +164,5 @@ int main(){
      std::cout << data1.getQVect() << std::endl;
      std::cout << "________Iteration over__________________________"<< std::endl;
    }
-
-
 return 0;
 }

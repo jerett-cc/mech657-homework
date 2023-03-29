@@ -313,15 +313,14 @@ double ProblemData::soundSpeed(const int idx){
 
 /**
  * set initial conditions based on typical problem parameters
- * TODO what to do is we are on problem 3? probably need to calculate
+ * TODO what to do if we are on problem 3? probably need to calculate
  */
 void ProblemData::setInitialCondition(const double gamma,
                                         const double inlet_pressure,
                                         const double total_temperature,
                                         const double R,
                                       const double s_star){
-  Eigen::Vector3d boundary;
-
+  Eigen::Vector3d boundary;//FIXME do I need this vector anymore??
   //calculate mach numbers on left and right of intervals.
   double machl = 0.1;
   double machr = machl;
@@ -332,10 +331,8 @@ void ProblemData::setInitialCondition(const double gamma,
     machr = machr -nonlinearFunctionToSolveP1(machr, s_star, gamma, Right)/
        nonlinearFunctionToSolveP1Deriv(machr, s_star, gamma, Right);
   }
-
-
-  std::cout << "Mach left is  " << machl << std::endl;
-  std::cout << "Mach right is " << machr << std::endl;
+  //std::cout << "Mach left is  " << machl << std::endl;
+  //std::cout << "Mach right is " << machr << std::endl;
   std::cout << "____________Left________________" << std::endl;
   //calculate pressure and velocity on left of interval, and put into boundary Q_l
   double insidel = 1 + (gamma-1)/(2)*std::pow(machl,2);
@@ -360,8 +357,6 @@ void ProblemData::setInitialCondition(const double gamma,
 //  std::cout << "boundary Q(1) = " << boundary_Ql(1) << std::endl;
 //  std::cout << "boundary E(0) = " << boundary_El(0) << std::endl;
 //  std::cout << "boundary E(1) = " << boundary_El(1) << std::endl;
-
-
   //calculate pressure and velocity on right of the interval, and put into boundary_Qr
   //this one we can only prescribe the pressure, the other variables should be interpolated from the interior
   std::cout << "____________Right________________" << std::endl;
@@ -376,47 +371,19 @@ void ProblemData::setInitialCondition(const double gamma,
 
   boundary_pressure = pressurer;
 
+  //std::cout << "pressure R    = " << pressurer << std::endl;
+  //std::cout << "density R     = " << densityr << std::endl;
+  //std::cout << "sound speed R = " << std::sqrt(parameter.gamma * pressurer / densityr) << std::endl;
+  //std::cout << "velocity R    = " << velocityr << std::endl;
+  //std::cout << "Energy R      = " << er/densityl << std::endl;
+  //std::cout << "boundary E(2) = " << boundary_Er(2) << std::endl;
+  //std::cout << "____________---________________" << std::endl;
 
-  std::cout << "pressure R    = " << pressurer << std::endl;
-  std::cout << "density R     = " << densityr << std::endl;
-  std::cout << "sound speed R = " << std::sqrt(parameter.gamma * pressurer / densityr) << std::endl;
-  std::cout << "velocity R    = " << velocityr << std::endl;
-  std::cout << "Energy R      = " << er/densityl << std::endl;
-  std::cout << "boundary E(2) = " << boundary_Er(2) << std::endl;
-  std::cout << "____________---________________" << std::endl;
-
-  //initialize the other components of the boundary vectors with the proper values.
-
-  //boundary_Ql(0) = boundary_density * S(Left);
-  //boundary_Ql(1) = boundary_density * boundary_velocity * S(Left);
-  //boundary_Ql(2) = el * S(Left);
-
-  //boundary_El(0) = boundary_density * boundary_velocity * S(Left);
-  //boundary_El(1) = (boundary_density * boundary_velocity + boundary_pressure) * S(Left);
-  //boundary_El(2) = boundary_velocity * (el  + boundary_pressure) * S(Left);
-
-  //boundary_Qr = boundary_Ql*S(Right)/S(Left);
-  //boundary_Er = boundary_El*S(Right)/S(Left);
-  //the above line only applies to the first two elements, the last one needs modified to use er
-  //boundary_Er(2) = boundary_velocity * (er  + boundary_pressure) * S(Right);
-
-  //output the vectors on the boundary, should only differ by S(Right)/S(Left)
-
+//  output the vectors on the boundary, should only differ by S(Right)/S(Left)
 //  std::cout << "_______________________________" << std::endl;
 
   /*FIXME why are the values not zero?? Probably need to initialize with the primitive variables densityl, velocityl, and pressurer*/
   //initialize the entire domain to the same values as the boundary, with the proper
-//  for (unsigned int i = 0; i < q.size(); ++i)
-//    {
-//	  q[i](0) = densityl * S(X(i));
-//	  q[i](1) = densityl * velocityl * S(X(i));
-//	  q[i](2) = er * S(X(i));
-//      q[i](0) = boundary_Ql(0)*S(x(i))/S(Left) ;
-//      q[i](1) = boundary_Ql(1)*S(x(i))/S(Left) ;
-//      q[i](2) = boundary_Ql(2)*S(x(i))/S(Left) ;
-//      std::cout << q[i] << std::endl;
-//    }
-
 
 #if 0
   std::cout << "______________Initializing with exact solution____________" << std::endl;
@@ -429,30 +396,28 @@ void ProblemData::setInitialCondition(const double gamma,
   get_data("pressure_number.txt", pressure_vec);
   for(unsigned int i = 0; i<q.size(); i++)
   {
-    q[i](0) = density_vec(i+1)*S(X(i));
-    q[i](1) = density_vec(i+1)*velocity_vec(i+1)*S(X(i));
-    q[i](2) = density_vec(i+1)*convert_pressure_to_energy(pressure_vec(i+1), density_vec(i+1), velocity_vec(i+1), parameter.gamma)*S(X(i));
+    q[i](0) = densityl*S(X(i));
+    q[i](1) = densityl*velocityl*S(X(i));
+    q[i](2) = densityl*convert_pressure_to_energy(pressurer, densityl, velocityl, parameter.gamma)*S(X(i));
     std::cout << q[i] << std::endl;
   }
+  boundary_Ql(0) = densityl*S(X(-1));//prescribed bc
+  boundary_Ql(1) = densityl*velocityl*S(X(-1));
+  boundary_Ql(2) = densityl*convert_pressure_to_energy(pressurel, densityl, velocityl, parameter.gamma)*S(X(-1));
 
+  boundary_Qr(0) = densityr*S(X(22));//prescribed bc
+  boundary_Qr(1) = densityr*velocityr* S(X(22));
+  boundary_Qr(2) = densityr*convert_pressure_to_energy(pressurer, densityr, velocityr, parameter.gamma)*S(X(22));
 
-  boundary_Ql(0) = density_vec(0)*S(X(-1));//prescribed bc
-  boundary_Ql(1) = density_vec(0)*velocity_vec(0)*S(X(-1));
-  boundary_Ql(2) = density_vec(0)*convert_pressure_to_energy(pressure_vec(0), density_vec(0), velocity_vec(0), parameter.gamma)*S(X(-1));
+  boundary_El(0) = densityl * velocityl * S(X(-1));
+  boundary_El(1) = (densityl * velocityl * velocityl + pressurel)* S(X(-1));
+  double energyl = densityl * (pressurel/(densityl * (parameter.gamma - 1)) + std::pow(velocityl,2)/2);
+  boundary_El(2) = velocityl * (energyl + pressurel) * S(X(-1));
 
-  boundary_Qr(0) = density_vec(21)*S(X(22));//prescribed bc
-  boundary_Qr(1) = density_vec(21)*velocity_vec(21)* S(X(22));
-  boundary_Qr(2) = density_vec(21)*convert_pressure_to_energy(pressure_vec(21), density_vec(21), velocity_vec(21), parameter.gamma)*S(X(22));
-
-  boundary_El(0) = density_vec(0) * velocity_vec(0) * S(X(-1));
-  boundary_El(1) = (density_vec(0) * velocity_vec(0) * velocity_vec(0) + pressure_vec(0))* S(X(-1));
-  double energyl = density_vec(0) * (pressure_vec(0)/(density_vec(0) * (parameter.gamma - 1)) + std::pow(velocity_vec(0),2)/2);
-  boundary_El(2) = velocity_vec(0) * (energyl + pressure_vec(0)) * S(X(-1));
-
-  boundary_Er(0) = density_vec(21) * velocity_vec(21) * S(X(22));
-  boundary_Er(1) = (density_vec(21) * velocity_vec(21) * velocity_vec(21) + pressure_vec(21))* S(X(22));
-  double energyr = density_vec(21) * (pressure_vec(21)/(density_vec(21) * (parameter.gamma - 1)) + std::pow(velocity_vec(21),2)/2);
-  boundary_Er(2) = velocity_vec(21) * (energyr + pressure_vec(21)) * S(X(22));
+  boundary_Er(0) = densityr * velocityr * S(X(22));
+  boundary_Er(1) = (densityr * velocityr * velocityr + pressurer)* S(X(22));
+  double energyr = densityr * (pressurer/(densityr * (parameter.gamma - 1)) + std::pow(velocityr,2)/2);
+  boundary_Er(2) = velocityr * (energyr + pressurer) * S(X(22));
 
 #endif
 
@@ -470,10 +435,8 @@ void ProblemData::setInitialCondition(const double gamma,
     q[i](0) = density_vec(i+1)*S(X(i));
     q[i](1) = density_vec(i+1)*velocity_vec(i+1)*S(X(i));
     q[i](2) = density_vec(i+1)*convert_pressure_to_energy(pressure_vec(i+1), density_vec(i+1), velocity_vec(i+1), parameter.gamma)*S(X(i));
-    std::cout << q[i] << std::endl;
+    //std::cout << q[i] << std::endl;
   }
-
-
   boundary_Ql(0) = density_vec(0)*S(X(-1));//prescribed bc
   boundary_Ql(1) = density_vec(0)*velocity_vec(0)*S(X(-1));
   boundary_Ql(2) = density_vec(0)*convert_pressure_to_energy(pressure_vec(0), density_vec(0), velocity_vec(0), parameter.gamma)*S(X(-1));
@@ -588,7 +551,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file << std::setprecision(16) << Velocity(i) << std::endl;
+    a_file << std::setprecision(16) << X(i) << " " << Velocity(i) << std::endl;
   }
   a_file.close();
 
@@ -597,7 +560,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file1 <<  std::setprecision(16) << Energy(i)/Density(i) << std::endl;
+    a_file1 <<  std::setprecision(16) << X(i) << " " << Energy(i)/Density(i) << std::endl;
   }
   a_file1.close();
 
@@ -606,7 +569,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file2 << std::setprecision(16) << Density(i) << std::endl;
+    a_file2 << std::setprecision(16) << X(i) << " " << Density(i) << std::endl;
   }
   a_file2.close();
 
@@ -615,7 +578,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = L_index; i< R_index+1; ++i)
   {
-    a_file3 << std::setprecision(16) <<  Pressure(i) <<std::endl;
+    a_file3 << std::setprecision(16) << X(i) << " " << Pressure(i) <<std::endl;
   }
   a_file3.close();
 
@@ -625,7 +588,7 @@ void ProblemData::printQuantities(std::string f_name){
 
   for (int i = 0; i< R_index; ++i)
   {
-    a_file3 << std::setprecision(16) <<  convert_pressure_to_energy(Pressure(i), Density(i), Velocity(i), parameter.gamma) <<std::endl;
+    a_file3 << std::setprecision(16) << X(i) << " " << convert_pressure_to_energy(Pressure(i), Density(i), Velocity(i), parameter.gamma) <<std::endl;
   }
   a_file3.close();
 
