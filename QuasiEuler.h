@@ -38,11 +38,13 @@ class QuasiEuler{
     QuasiEuler(ProblemData *Data, double dt)
       : data(Data), dt(dt)
     {
-      sensor_contributions = Eigen::MatrixXd::Zero(data->q.size()+2, 2);
+      sensor_contributions = Eigen::MatrixXd::Zero(data->q.size(), 2);
     }
 
     void calculateSensorContributions();
     double sigma(const int idx);
+    double calc_lambda2_half(const int);
+    double calc_lambda4_half(const int);
     Eigen::Matrix3d calculateLocalFluxJacobian(const int idx);
 
     Eigen::Vector3d lowOrderDifferencing(const int idx);//todo
@@ -62,41 +64,60 @@ void QuasiEuler::calculateSensorContributions(){
   double kappa4 = 0.02;
 
 
-  assert(data->q.size()+2==sensor_contributions.rows());
+  assert(data->q.size()==sensor_contributions.rows());
 
-  for (int i = data->L_index; i < data->R_index; ++i)
-    //loop through all points on mesh including boundary nodes.
+  for (int i = 0; i < data->q.size(); ++i)
   {
-//    std::cout << "iteration "<< i << "--------------------------------------------" << std::endl;
     double topi = data->Pressure(i+1) - 2*data->Pressure(i) + data->Pressure(i-1);
-//    std::cout << "Top i " << std::endl
-//        << topi << std::endl;
     double bottomi = data->Pressure(i+1) + 2*data->Pressure(i) + data->Pressure(i-1);
-//    std::cout << "bot i " << std::endl
-//        << bottomi << std::endl;
 
     double topi_next = data->Pressure(i+2) - 2*data->Pressure(i+1) + data->Pressure(i);
-//    std::cout << "Top i+1 " << std::endl
-//        << topi_next << std::endl;
     double bottomi_next = data->Pressure(i+2) + 2*data->Pressure(i+1) + data->Pressure(i);
-//    std::cout << "bot i+1 " << std::endl
-//        << bottomi_next << std::endl;
 
     double topi_prev = data->Pressure(i) - 2*data->Pressure(i-1) + data->Pressure(i-2);
-//    std::cout << "Top i-1 " << std::endl
-//        << topi_prev << std::endl;
     double bottomi_prev = data->Pressure(i) + 2*data->Pressure(i-1) + data->Pressure(i-2);
-//    std::cout << "bot i-1 " << std::endl
-//        << bottomi_prev << std::endl;
+
     double GAMMA_i = std::abs(topi/bottomi);
     double GAMMA_i_next = std::abs(topi_next/bottomi_next);
     double GAMMA_i_prev = std::abs(topi_prev/bottomi_prev);
+
+    if(i-1<0)
+    {
+      GAMMA_i_prev = GAMMA_i;
+    }
+    else if (i+1==data->q.size())
+    {
+      GAMMA_i_next = GAMMA_i;
+    }
+
     double epsilon2 =  kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
-    sensor_contributions(i-data->L_index,0) = epsilon2;
-    sensor_contributions(i-data->L_index,1) = std::max(0., kappa4 - epsilon2);
-
+    sensor_contributions(i,0) = epsilon2;
+    sensor_contributions(i,1) = std::max(0., kappa4 - epsilon2);
   }
+}
 
+/**
+ * calculates the largest eigenvalue of the flux jacobian matrix times the low order sensor
+ * used to compute RHS dissipation and the matrix L
+ */
+double
+QuasiEuler::calc_lambda2_half(const int a_i)
+{
+  double lambda_2 = 0.5 *
+      (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i));
+  return lambda_2;
+}
+
+/**
+ * calculates the largest eigenvalue of the flux jacobian matrix times the high order sensor
+ * used to compute RHS dissipation and the matrix L
+ */
+double
+QuasiEuler::calc_lambda4_half(const int a_i)
+{
+  double lambda_4 = 0.5 *
+      (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i));
+  return lambda_4;
 }
 
 /**
