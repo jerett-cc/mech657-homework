@@ -104,7 +104,7 @@ double
 QuasiEuler::calc_lambda2_half(const int a_i)
 {
   double lambda_2 = 0.5 *
-      (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i));
+      (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i+1));
   return lambda_2;
 }
 
@@ -116,7 +116,7 @@ double
 QuasiEuler::calc_lambda4_half(const int a_i)
 {
   double lambda_4 = 0.5 *
-      (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i));
+      (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i+1));
   return lambda_4;
 }
 
@@ -151,7 +151,7 @@ Eigen::Matrix3d QuasiEuler::calculateLocalFluxJacobian(const int idx){
 }
 
 double QuasiEuler::sigma(const int idx){
-  return std::abs(data->Velocity(idx) + data->soundSpeed(idx));
+  return std::abs(data->Velocity(idx)) + data->soundSpeed(idx);
 }
 
 Eigen::Vector3d QuasiEuler::lowOrderDifferencing(const int idx){

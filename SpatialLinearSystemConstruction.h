@@ -346,7 +346,11 @@ void Solver::XXXcalcDx(){
   for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
   {
     //start at 1, end at size
-    std::cout << "i is : " << i << std::endl;
+    std::cout << "i: " << i << std::endl;
+    std::cout << "lambda2(i): \n" << std::setprecision(16) << problem->calc_lambda2_half(i) << std::endl;
+    std::cout << "calc low order: \n" << std::setprecision(16)<< problem->lowOrderDifferencing(i) << std::endl;
+    std::cout << "calc high order: \n" << std::setprecision(16)<< problem->highOrderDifferencing(i) << std::endl;
+
     int sensor_node = i;
     double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
     //special case for first node
