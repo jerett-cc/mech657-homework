@@ -343,26 +343,37 @@ void Solver::XXXcalcDx(){
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
   std::vector<Eigen::Vector3d> tmp_l(data->q.size());
 
-  for (unsigned int i = 0; i < data->q.size(); ++i)//loop through all nodes
+  for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
   {
     //start at 1, end at size
-    int sensor_node = i+1;
+    std::cout << "i is : " << i << std::endl;
+    int sensor_node = i;
+    double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
     //special case for first node
-//    if (i-1 < 0)
-//    {
-//
-//    }
-    double ind = i;
-    //do as if no boundary cases... then treat boundary cases differently.
-    double two_gamma_plus  = 0.5*(problem->sensor_contributions(sensor_node+1,0) * problem->sigma(i+1)
-                                 - problem->sensor_contributions(sensor_node,0) * problem->sigma(i));
-    double two_gamma_minus = 0.5*(problem->sensor_contributions(sensor_node,0) * problem->sigma(i)
-                                  - problem->sensor_contributions(sensor_node-1,0) * problem->sigma(i-1));
+    if (i-1 < 0)
+    {
+      two_gamma_plus  = problem->calc_lambda2_half(sensor_node);
+      two_gamma_minus = 0;
 
-    double four_gamma_plus = 0.5*(problem->sensor_contributions(sensor_node+1,1) * problem->sigma(i+1)
-                                 - problem->sensor_contributions(sensor_node,1) * problem->sigma(i));
-    double four_gamma_minus = 0.5*(problem->sensor_contributions(sensor_node,1) * problem->sigma(i)
-                                   - problem->sensor_contributions(sensor_node-1,1) * problem->sigma(i-1));
+      four_gamma_plus = problem->calc_lambda4_half(sensor_node);
+      four_gamma_minus = 0;
+    }
+    else if(i+1 >= data->q.size())
+    {
+      two_gamma_plus  = 0;
+      two_gamma_minus = problem->calc_lambda2_half(sensor_node-1);
+
+      four_gamma_plus = 0;
+      four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
+    }
+    else
+    {
+      two_gamma_plus  = problem->calc_lambda2_half(sensor_node);
+      two_gamma_minus = problem->calc_lambda2_half(sensor_node-1);
+
+      four_gamma_plus = problem->calc_lambda4_half(sensor_node);
+      four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
+    }
 
     tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
             - two_gamma_minus * problem->lowOrderDifferencing(i-1);
@@ -374,8 +385,8 @@ void Solver::XXXcalcDx(){
     Dx(ier+2) =  1/data->dx * (tmp_l[i](2) - tmp_h[i](2));
   }
 
-  std::cout << "____________Dissipation (divided by dx) is: _______________" << std::endl;
-  std::cout << Dx << std::endl;
+  std::cout << "____________Dissipation (NOT divided by dx) is: _______________" << std::endl;
+  std::cout << data->dx * Dx << std::endl;
   b = b + problem->dt * Dx;
 }
 

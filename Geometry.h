@@ -385,7 +385,7 @@ void ProblemData::setInitialCondition(const double gamma,
   /*FIXME why are the values not zero?? Probably need to initialize with the primitive variables densityl, velocityl, and pressurer*/
   //initialize the entire domain to the same values as the boundary, with the proper
 
-#if 1
+#if 0
   std::cout << "______________Initializing with constant value 1____________" << std::endl;
   for(unsigned int i = 0; i<q.size(); i++)
   {
@@ -418,7 +418,7 @@ void ProblemData::setInitialCondition(const double gamma,
 
 #endif
 
-#if 0
+#if 1
   std::cout << "______________Initializing with exact solution____________" << std::endl;
   Eigen::VectorXd density_vec(20+2);
   Eigen::VectorXd velocity_vec(20+2);
