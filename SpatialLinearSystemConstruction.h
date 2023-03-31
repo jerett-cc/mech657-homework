@@ -1,7 +1,6 @@
 #ifndef SpatialLinearSystemCons_H
 #define SpatialLinearSystemCons_H
 
-
 #include "../Eigen/Dense"
 #include "../Eigen/IterativeLinearSolvers"
 #include "../Eigen/Sparse"
@@ -10,23 +9,17 @@
 #include <iomanip>
 #include <cmath>
 
-// needs to calculate the matrix, calculate the RHS, and solve the system for deltaQ
-
 /**
  * this class should take the data structure, the problem (which has the pressure sensor and
  * dissipation calculation) and produce a matrix A, the rhs b, and can solve it with the iterative method
  * and the diagonal form
  */
 class Solver{
-
   public:
     std::vector<Eigen::Vector3d> delta_Q;//solution vector
     double step_error = 1.0;
-    void setupSystem();//does this need to include a parameter Data Class?
-    void solveSystem();//updates delta_Q with the result of the system solution.
-
-
-
+    void setupSystem();
+    void solveSystem();
     Solver(ProblemData *data, QuasiEuler *problem)
       : data(data), problem(problem)
       , stencil_rows(data->q.size()*3)
@@ -34,14 +27,12 @@ class Solver{
     {
       delta_Q = data->q;//we will overwrite the values in this. when we compute delta_Q
       //this could introduce bugs. be aware?
-//      std::cout << "Look here "  <<  data->getQVect().size() << std::endl;
       A = Eigen::MatrixXd::Identity(data->getQVect().size(), data->getQVect().size());
       b = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
-      assert(A.cols() == data->q.size() * 3);
-      //todo remove this assertion, it will not be true in more than one dim
+      assert(A.cols() == data->q.size() * 3);//FIXME: will this assertion be tru in more than one dim?
     }
     double error();
-//  private:
+//  private: //FIXME: make some of these private??
     Eigen::MatrixXd A;
     Eigen::VectorXd b;
     Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
@@ -178,16 +169,7 @@ void Solver::calculateAndAddL(){
     stencil_high_order.block<3,3>(i*3, (i+2)*3) = -(3*gamma[0] + 3*gamma[1])*(identity);
     stencil_high_order.block<3,3>(i*3, (i+3)*3) = (3*gamma[1] + gamma[0])*(identity);
     stencil_high_order.block<3,3>(i*3, (i+4)*3) = -gamma[1]*(identity);
-
-    // stencil_high_order.block<3,3>(i*3, i*3)     = identity;
-    // stencil_high_order.block<3,3>(i*3, (i+1)*3) = identity;
-    // stencil_high_order.block<3,3>(i*3, (i+2)*3) = identity;
-    // stencil_high_order.block<3,3>(i*3, (i+3)*3) = identity;
-    // stencil_high_order.block<3,3>(i*3, (i+4)*3) = identity;
-
   }
-  //std::cout << "Done. Stencil high order is: " << std::endl;
-  //std::cout << stencil_high_order << std::endl;
   //solve for low order stencil
   std::cout << "Calculating low order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
@@ -215,23 +197,16 @@ void Solver::calculateAndAddL(){
     stencil_low_order.block<3,3>(i*3, (i+1)*3) = gamma[0]*(identity);
     stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[1] - gamma[0])*(identity);
     stencil_low_order.block<3,3>(i*3, (i+3)*3) = gamma[1]*(identity);
-
-    // stencil_low_order.block<3,3>(i*3, (i+1)*3) = identity;
-    // stencil_low_order.block<3,3>(i*3, (i+2)*3) = identity;
-    // stencil_low_order.block<3,3>(i*3, (i+3)*3) = identity;
-
-
   }
   std::cout << "done" << std::endl;
   stencil_high_order += stencil_low_order;
-  std::cout << "Stencil before extraction: \n" << stencil_high_order << std::endl;
-
+  // std::cout << "Stencil before extraction: \n" << stencil_high_order << std::endl;
   //extract correct matrix
   for (int i=6; i < stencil_cols-6; ++i)
   {
     result.col(i - 6) = stencil_high_order.col(i);
   }
-  std::cout << "Matrix dissipation: \n" << result << std::endl;
+  // std::cout << "Matrix dissipation: \n" << 1.0/ data->dx * result << std::endl;
   result = problem->dt / data->dx * result;
   //std::cout << "matrix dissipation from e4 and e2 contribution\n" << result  <<std::endl;
   A = A + result;
@@ -243,11 +218,9 @@ void Solver::calculateAndAddL(){
 void Solver::calcDe(){
   Eigen::VectorXd DxE = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
   int j = 0;
-  std::cout << "Printing E ____" <<std::endl;
   for(int i = 0; i<data->q.size(); ++i)
   {
     Eigen::Vector3d Ei = data->E(i+1) - data->E(i-1);
-    //std::cout << std::setprecision(16) <<  data->E(i) << std::endl;
     double e1 = Ei(0);
     double e2 = Ei(1);
     double e3 = Ei(2);
@@ -258,7 +231,6 @@ void Solver::calcDe(){
     DxE(j) = e3;
     j++;
   }
-  //std::cout << "DxE with /2dx\n" << std::setprecision(16) << DxE/(2.0*data->dx) << std::endl;
   b = b - problem->dt*DxE/(2.0*data->dx);
 }
 
@@ -273,12 +245,6 @@ void Solver::calcDx(){
 
   for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
   {
-    //start at 1, end at size
-    //std::cout << "i: " << i << std::endl;
-    //std::cout << "lambda2(i): \n" << std::setprecision(16) << problem->calc_lambda2_half(i) << std::endl;
-    //std::cout << "calc low order: \n" << std::setprecision(16)<< problem->lowOrderDifferencing(i) << std::endl;
-    //std::cout << "calc high order: \n" << std::setprecision(16)<< problem->highOrderDifferencing(i) << std::endl;
-
     int sensor_node = i;
     double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
     //special case for first node
@@ -306,7 +272,6 @@ void Solver::calcDx(){
       four_gamma_plus = problem->calc_lambda4_half(sensor_node);
       four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
     }
-
     tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
             - two_gamma_minus * problem->lowOrderDifferencing(i-1);
     tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
@@ -316,22 +281,17 @@ void Solver::calcDx(){
     Dx(ier+1) =  1/data->dx * (tmp_l[i](1) - tmp_h[i](1));
     Dx(ier+2) =  1/data->dx * (tmp_l[i](2) - tmp_h[i](2));
   }
-
-  std::cout << "____________RHS Dissipation (divided by dx) is: _______________" << std::endl;
-  //std::cout << Dx << std::endl;
   b = b + problem->dt * Dx;
 }
 
 void Solver::calcSx(){
   Eigen::VectorXd tmp = Eigen::VectorXd::Zero(data->getQVect().size());
-
   for(unsigned int i = 0; i < data->q.size(); ++i)
   {
     tmp(3*i) = 0;
     tmp(3*i+1) = data->Pressure(i) * data->Sprime(data->X(i));
     tmp(3*i+2) = 0;
   }
-  //std::cout << "S contributions to RHS\n" << std::setprecision(16) << tmp << std::endl;
   b = b + problem->dt * tmp;
 }
 
@@ -342,7 +302,6 @@ void Solver::calculateAndAddS(){
   int local_matrix_size = data->q[0].size();
   Eigen::MatrixXd local_S_matrix;
   Eigen::MatrixXd Sjac = Eigen::MatrixXd::Zero(data->getQVect().size(), data->getQVect().size());
-
   local_S_matrix = Eigen::MatrixXd::Zero(local_matrix_size, local_matrix_size);
   for(unsigned int i = 0; i < data->q.size(); ++i)
   {
@@ -352,8 +311,6 @@ void Solver::calculateAndAddS(){
     local_S_matrix(1,2) = (data->parameter.gamma-1.0);
     Sjac.block<3,3>(ier, ier) += local_S_matrix * data->Sprime(data->X(i));
   }
-
-  //std::cout << "Sjac is \n" << Sjac << std::endl;
   A = A - problem->dt*Sjac;
 }
 

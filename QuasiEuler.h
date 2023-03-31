@@ -19,7 +19,6 @@
 #include "../Eigen/Dense"
 #include "Geometry.h"
 
-
 /**
  * this class should store the sensor contributions and also be able to calculate the
  * dissipation at an index idx of the data.
@@ -29,28 +28,23 @@
  * the sensor contributions will be used for ^^ and also for the contribution to L?
  */
 class QuasiEuler{
-
   public:
     double dt;
     ProblemData *data;
     Eigen::MatrixXd sensor_contributions;
-
-    QuasiEuler(ProblemData *Data, double dt)
-      : data(Data), dt(dt)
+    QuasiEuler(ProblemData *Data, double cfl, double max_vel)
+      : data(Data)
     {
+      dt = cfl * data->dx / (max_vel + 300.);//FIXME: how to change this for adaptive time stepping?
       sensor_contributions = Eigen::MatrixXd::Zero(data->q.size(), 2);
     }
-
     void calculateSensorContributions();
     double sigma(const int idx);
     double calc_lambda2_half(const int);
     double calc_lambda4_half(const int);
     Eigen::Matrix3d calculateLocalFluxJacobian(const int idx);
-
     Eigen::Vector3d lowOrderDifferencing(const int idx);//todo
     Eigen::Vector3d highOrderDifferencing(const int idx);//todo
-
-
 };
 
 /**
@@ -59,13 +53,9 @@ class QuasiEuler{
  * stores kappa2 in column 0 and kappa4 in column 1 of the matrix.
  */
 void QuasiEuler::calculateSensorContributions(){
-
   double kappa2 = 0.5;
   double kappa4 = 0.02;
-
-
   assert(data->q.size()==sensor_contributions.rows());
-
   for (int i = 0; i < data->q.size(); ++i)
   {
     double topi = data->Pressure(i+1) - 2*data->Pressure(i) + data->Pressure(i-1);
@@ -89,7 +79,6 @@ void QuasiEuler::calculateSensorContributions(){
     {
       GAMMA_i_next = GAMMA_i;
     }
-
     double epsilon2 =  kappa2*std::max(GAMMA_i, std::max(GAMMA_i_next, GAMMA_i_prev));
     sensor_contributions(i,0) = epsilon2;
     sensor_contributions(i,1) = std::max(0., kappa4 - epsilon2);
@@ -131,7 +120,7 @@ QuasiEuler::calc_lambda4_half(const int a_i)
   }
   else
   {
-    lambda_4 = sensor_contributions(a_i,0) * sigma(a_i);
+    lambda_4 = sensor_contributions(a_i,1) * sigma(a_i);
   }
   return lambda_4;
 }
@@ -141,11 +130,10 @@ QuasiEuler::calc_lambda4_half(const int a_i)
  * idx. this should only be used for the construction of the system matrix
  *
  */
-Eigen::Matrix3d QuasiEuler::calculateLocalFluxJacobian(const int idx){
+Eigen::Matrix3d
+QuasiEuler::calculateLocalFluxJacobian(const int idx)
+{
   Eigen::Matrix3d local_flux;
-
-//  std::cout << local_flux.cols() << "  " << local_flux.rows() << std::endl;
-
   double gamma = data->parameter.gamma;
   double q1 = data->q[idx](0);
   double q2 = data->q[idx](1);
@@ -177,31 +165,5 @@ Eigen::Vector3d QuasiEuler::lowOrderDifferencing(const int idx){
 Eigen::Vector3d QuasiEuler::highOrderDifferencing(const int idx){
   return (data->Q(idx+2) - 3* data->Q(idx+1) + 3*data->Q(idx) - data->Q(idx-1));
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

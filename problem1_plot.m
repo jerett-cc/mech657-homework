@@ -53,7 +53,7 @@ P =[
     ]
 
 figure()
-plot(C(:,1), C(:,2));
+plot(Bnew(:,1), C(:));
 hold on
 plot(C1(:,2), C1(:,1));
 ylabel("velocity")
