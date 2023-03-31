@@ -27,7 +27,7 @@ class Solver{
 
 
 
-    Solver(ProblemData *data, QuasiEuler * problem)
+    Solver(ProblemData *data, QuasiEuler *problem)
       : data(data), problem(problem)
       , stencil_rows(data->q.size()*3)
       , stencil_cols(3*(data->q.size()+4))
@@ -41,8 +41,6 @@ class Solver{
       //todo remove this assertion, it will not be true in more than one dim
     }
     double error();
-
-
 //  private:
     Eigen::MatrixXd A;
     Eigen::VectorXd b;
@@ -61,7 +59,6 @@ class Solver{
     void setup_b();
     void calcDe();
     void calcDx();
-    void XXXcalcDx();
     void calcSx();
 };
 
@@ -100,8 +97,7 @@ void Solver::solveSystem(){
  *this function calculates the contribution of En and Dx and adds it to b */
 void Solver::setup_b(){
   calcDe();
-  //calcDx();
-  XXXcalcDx();
+  calcDx();
   calcSx();
 }
 
@@ -132,7 +128,7 @@ void Solver::calculateAndAddSpatialMatrix(){
     TOSHOW.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5/data->dx *Ai_n;
     TOSHOW.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5/data->dx*Ai;
   }
-  std::cout << "dxA" << std::endl << TOSHOW << std::endl;
+  //std::cout << "dxA" << std::endl << TOSHOW << std::endl;
   A =  A + problem->dt*TOSHOW;
 }
 
@@ -141,10 +137,10 @@ void Solver::calculateAndAddSpatialMatrix(){
  * TODO there is probably a bug here.
  */
 void Solver::calculateAndAddL(){
-  Eigen::MatrixXd VIEWSTENCIL =
-    Eigen::MatrixXd::Zero(data->getQVect().size(), data->getQVect().size());
   Eigen::MatrixXd stencil_high_order(stencil_rows, stencil_cols);
   Eigen::MatrixXd stencil_low_order(stencil_rows, stencil_cols);
+  stencil_high_order = Eigen::MatrixXd::Zero(stencil_rows, stencil_cols);
+  stencil_low_order = Eigen::MatrixXd::Zero(stencil_rows, stencil_cols);
 
   Eigen::MatrixXd result(A.rows(), A.cols());
   result = Eigen::MatrixXd::Zero(A.rows(), A.cols());
@@ -152,61 +148,46 @@ void Solver::calculateAndAddL(){
       && result.rows() == A.rows()
       && "matrices for dissipation and system not same dimensions");
 
-//  std::cout<< result << std::endl;
-  //solve for the high order stencil
+
+  std::cout << "identity matrix: \n" << identity << std::endl;
+
+  std::cout << "result matrix: \n" << result << std::endl;
   std::cout << "Solving high order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
   {
+    //this sets up the vector of coefficients {lambda-1/2, lambda1/2} at each node point
+    //noting that we use a constant extrapolation of these at the boundary
     std::vector<double> gamma(2);
     for (int j = 0; j < 2; ++j)
     {
-      if (i-1+j <0)
+      if (i-1 <0)
       {
-        std::cout << "i-1+j <0" << std::endl;
-        double u_0j = data->Velocity(i-1+j);
-        double u_1j = data->Velocity(i+j);
-        double a_0j = data->soundSpeed(i-1+j);
-        double a_1j = data->soundSpeed(i+j);
-
-        double sigma1j = problem->sensor_contributions(i+j,1) * (std::abs(u_1j) + a_1j);
-        double sigma0j = sigma1j;
-        gamma[j] = 0.5 * (sigma1j + sigma0j);
-
-        std::cout << "GAMMA(-1) is \n" << gamma[0] << std::endl;
-        std::cout << "done." << std::endl;
+        gamma[j] = problem->calc_lambda4_half(i);
       }
-      else if (i+j > problem->sensor_contributions.rows()-1)
+      else if (i+1 >= data->q.size())
       {
-        std::cout << "i + j >rows-1" << std::endl;
-        double u_0j = data->Velocity(i-1+j);
-        double u_1j = data->Velocity(i+j);
-        double a_0j = data->soundSpeed(i-1+j);
-        double a_1j = data->soundSpeed(i+j);
-        double sigma0j = problem->sensor_contributions(i-1+j,1) * (std::abs(u_0j) + a_0j);
-        double sigma1j = sigma0j;
-        gamma[j] = 0.5 * (sigma1j + sigma0j);
-        std::cout << "done." << std::endl;
-      } else {
-        std::cout << "internal case" << std::endl;
-        double u_0j = data->Velocity(i-1+j);
-        double u_1j = data->Velocity(i+j);
-        double a_0j = data->soundSpeed(i-1+j);
-        double a_1j = data->soundSpeed(i+j);
-        double sigma1j = problem->sensor_contributions(i+j,1) * (std::abs(u_1j) + a_1j);
-        double sigma0j = problem->sensor_contributions(i-1+j,1) * (std::abs(u_0j) + a_0j);
-        gamma[j] = 0.5 * (sigma1j + sigma0j);
-        std::cout << "done." << std::endl;
+        gamma[j] = problem->calc_lambda4_half(i-1);
+      }
+      else
+      {
+        gamma[j] = problem->calc_lambda4_half(i-1+j);
       }
     }
-//    double gammaj = problem->sensor_contributions(i,1)*;
-    stencil_high_order.block<3,3>(i*3, i*3) = gamma[0]*(1*identity);
-    stencil_high_order.block<3,3>(i*3, (i+1)*3) = -(gamma[1] + 3*gamma[0])*(-4*identity);
-    stencil_high_order.block<3,3>(i*3, (i+2)*3) = (3*gamma[0] + 3*gamma[1])*(6*identity);
-    stencil_high_order.block<3,3>(i*3, (i+3)*3) = -(3*gamma[1] + gamma[0])*(-4*identity);
-    stencil_high_order.block<3,3>(i*3, (i+4)*3) = gamma[1]*(1*identity);
+    stencil_high_order.block<3,3>(i*3, i*3)     = -gamma[0]*(identity);
+    stencil_high_order.block<3,3>(i*3, (i+1)*3) = (gamma[1] + 3*gamma[0])*(identity);
+    stencil_high_order.block<3,3>(i*3, (i+2)*3) = -(3*gamma[0] + 3*gamma[1])*(identity);
+    stencil_high_order.block<3,3>(i*3, (i+3)*3) = (3*gamma[1] + gamma[0])*(identity);
+    stencil_high_order.block<3,3>(i*3, (i+4)*3) = -gamma[1]*(identity);
+
+    // stencil_high_order.block<3,3>(i*3, i*3)     = identity;
+    // stencil_high_order.block<3,3>(i*3, (i+1)*3) = identity;
+    // stencil_high_order.block<3,3>(i*3, (i+2)*3) = identity;
+    // stencil_high_order.block<3,3>(i*3, (i+3)*3) = identity;
+    // stencil_high_order.block<3,3>(i*3, (i+4)*3) = identity;
+
   }
-  std::cout << "Done. Stencil high order is: " << std::endl;
-  std::cout << stencil_high_order << std::endl;
+  //std::cout << "Done. Stencil high order is: " << std::endl;
+  //std::cout << stencil_high_order << std::endl;
   //solve for low order stencil
   std::cout << "Calculating low order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
@@ -214,57 +195,50 @@ void Solver::calculateAndAddL(){
     std::vector<double> gamma(2);
     for (int j = 0; j < 2; ++j)
     {
-      if (i-1+j <0)
+      std::vector<double> gamma(2);
+      for (int j = 0; j < 2; ++j)
       {
-        double u_1j = data->Velocity(i+j);
-        double a_1j = data->soundSpeed(i+j);
-
-        double sigma1j = problem->sensor_contributions(i+j,0) * (std::abs(u_1j) + a_1j);
-        double sigma0j = sigma1j;
-        gamma[j] = 0.5 * (sigma1j + sigma0j);
-      }
-      else if (i+j > problem->sensor_contributions.rows()-1)
-      {
-        double u_0j = data->Velocity(i-1+j);
-        double a_0j = data->soundSpeed(i-1+j);
-
-        double sigma0j = problem->sensor_contributions(i-1+j,0) * (std::abs(u_0j) + a_0j);
-        double sigma1j = sigma0j;
-
-        gamma[j] = 0.5 * (sigma1j + sigma0j);
-      } else {
-        double u_0j = data->Velocity(i-1+j);
-        double u_1j = data->Velocity(i+j);
-        double a_0j = data->soundSpeed(i-1+j);
-        double a_1j = data->soundSpeed(i+j);
-
-        double sigma1j = problem->sensor_contributions(i+j,0) * (std::abs(u_1j) + a_1j);
-        double sigma0j = problem->sensor_contributions(i-1+j,0) * (std::abs(u_0j) + a_0j);
-
-        gamma[j] = 0.5 * (sigma1j + sigma0j);
+        if (i-1 <0)
+        {
+          gamma[j] = problem->calc_lambda4_half(i);
+        }
+        else if (i+1 >= data->q.size())
+        {
+          gamma[j] = problem->calc_lambda4_half(i-1);
+        }
+        else
+        {
+          gamma[j] = problem->calc_lambda4_half(i-1+j);
+        }
       }
     }
-    stencil_low_order.block<3,3>(i*3, (i+1)*3) = gamma[0]*(-1*identity);
-    stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[0] + gamma[1])*(2*identity);
-    stencil_low_order.block<3,3>(i*3, (i+3)*3) = gamma[1]*(-1*identity);
+    stencil_low_order.block<3,3>(i*3, (i+1)*3) = gamma[0]*(identity);
+    stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[1] - gamma[0])*(identity);
+    stencil_low_order.block<3,3>(i*3, (i+3)*3) = gamma[1]*(identity);
+
+    // stencil_low_order.block<3,3>(i*3, (i+1)*3) = identity;
+    // stencil_low_order.block<3,3>(i*3, (i+2)*3) = identity;
+    // stencil_low_order.block<3,3>(i*3, (i+3)*3) = identity;
+
+
   }
   std::cout << "done" << std::endl;
   stencil_high_order += stencil_low_order;
-//   std::cout << stenci  l_high_order << "\n stencil ^^" <<std::endl;
+  std::cout << "Stencil before extraction: \n" << stencil_high_order << std::endl;
 
   //extract correct matrix
   for (int i=6; i < stencil_cols-6; ++i)
   {
     result.col(i - 6) = stencil_high_order.col(i);
   }
-  result = problem->dt * result;
-  std::cout << "matrix dissipation from e4 and e2 contribution\n" << result  <<std::endl;
+  std::cout << "Matrix dissipation: \n" << result << std::endl;
+  result = problem->dt / data->dx * result;
+  //std::cout << "matrix dissipation from e4 and e2 contribution\n" << result  <<std::endl;
   A = A + result;
-//  std::cout << "A is now " << std::endl << A << std::endl;
 }
 
 /**
- * this function should calculate dxE for each node and place that in the vector b
+ * this function calculates dxE for each node and place that in the vector b
  */
 void Solver::calcDe(){
   Eigen::VectorXd DxE = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
@@ -273,72 +247,26 @@ void Solver::calcDe(){
   for(int i = 0; i<data->q.size(); ++i)
   {
     Eigen::Vector3d Ei = data->E(i+1) - data->E(i-1);
-    std::cout << std::setprecision(16) <<  data->E(i) << std::endl;
+    //std::cout << std::setprecision(16) <<  data->E(i) << std::endl;
     double e1 = Ei(0);
     double e2 = Ei(1);
     double e3 = Ei(2);
     DxE(j) = e1;
-    //DxE(j) = 1;
     j++;
     DxE(j) = e2;
-    //DxE(j) = 1;
     j++;
     DxE(j) = e3;
-    //DxE(j) = 1;
     j++;
   }
-  std::cout << "DxE with /2dx\n" << std::setprecision(16) << DxE/(2.0*data->dx) << std::endl;
+  //std::cout << "DxE with /2dx\n" << std::setprecision(16) << DxE/(2.0*data->dx) << std::endl;
   b = b - problem->dt*DxE/(2.0*data->dx);
-  //std::cout << "h*DxE\n" << std::setprecision(16) << problem->dt*DxE/(2.0*data->dx) << std::endl;
 }
 
 /**
- * calculates the dissipation contribution to the RHS, and adds it to the member function b
- */
+ *This function calculates the artificial dissipation for the RHS of the quasi Euler system and
+ *adds it to member variable b.
+ * */
 void Solver::calcDx(){
-  std::vector<Eigen::Vector3d> tmp_h(data->q.size());//we will overwrite this could introduce bugs
-  std::vector<Eigen::Vector3d> tmp_l(data->q.size());//these are indermediate
-  Eigen::VectorXd c = Eigen::VectorXd::Zero(data->getQVect().size());
-  for(int i = 0; i<data->q.size(); ++i)//loop through all nodes, this is before the last backward differencing.
-  {
-//    std::cout << "index dummy " << i << std::endl;
-    tmp_h[i] = problem->highOrderDifferencing(i);
-    tmp_l[i] = problem->lowOrderDifferencing(i);
-//    std::cout << "-------------" << std::endl
-//              << tmp_h[i] << std::endl
-//              << "-------------" << std::endl
-//              << tmp_l[i] << std::endl
-//              << "-------------" << std::endl;
-  }
-  //std::cout << "B before \n" << b << std::endl;
-  for(int i = 0; i < data->q.size(); ++i )//loop through all nodes
-  {
-    int ier = 3*i;
-    Eigen::Vector3d back_tmph;
-    Eigen::Vector3d back_tmpl;
-    if (i-1 <0)
-    {
-      back_tmph = 0*tmp_h[i];
-      back_tmpl = 0*tmp_l[i];
-    }
-    else
-    {
-      back_tmph = tmp_h[i] - tmp_h[i-1];
-      back_tmpl = tmp_l[i] - tmp_l[i-1];
-    }
-    c(ier    ) = -problem->dt * (-back_tmph(0) + back_tmpl(0));
-    c(ier + 1) = -problem->dt * (-back_tmph(1) + back_tmpl(1));
-    c(ier + 2) = -problem->dt * (-back_tmph(2) + back_tmpl(2));
-
-  }
-  std::cout << "Dx is \n" << c << std::endl;
-  std::cout << "____________________________\n" << "Q0:\n" << data->Q(0) << std::endl;
-  std::cout<< "Q-1\n" << data->Q(-1) << "\n and Q-2 \n" << data->Q(-2) << std::endl;
-  std::cout<< "Q1\n" << data->Q(1) << "\n and Q2 \n" << data->Q(2) << std::endl;
-}
-
-//FIXME: add a description here
-void Solver::XXXcalcDx(){
   Eigen::VectorXd Dx = Eigen::VectorXd::Zero(data->getQVect().size());
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
   std::vector<Eigen::Vector3d> tmp_l(data->q.size());
@@ -346,10 +274,10 @@ void Solver::XXXcalcDx(){
   for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
   {
     //start at 1, end at size
-    std::cout << "i: " << i << std::endl;
-    std::cout << "lambda2(i): \n" << std::setprecision(16) << problem->calc_lambda2_half(i) << std::endl;
-    std::cout << "calc low order: \n" << std::setprecision(16)<< problem->lowOrderDifferencing(i) << std::endl;
-    std::cout << "calc high order: \n" << std::setprecision(16)<< problem->highOrderDifferencing(i) << std::endl;
+    //std::cout << "i: " << i << std::endl;
+    //std::cout << "lambda2(i): \n" << std::setprecision(16) << problem->calc_lambda2_half(i) << std::endl;
+    //std::cout << "calc low order: \n" << std::setprecision(16)<< problem->lowOrderDifferencing(i) << std::endl;
+    //std::cout << "calc high order: \n" << std::setprecision(16)<< problem->highOrderDifferencing(i) << std::endl;
 
     int sensor_node = i;
     double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
@@ -384,17 +312,13 @@ void Solver::XXXcalcDx(){
     tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
             - four_gamma_minus * problem->highOrderDifferencing(i-1);
     int ier = 3*i;
-    Dx(ier  ) =  1/data->dx * (tmp_l[i](0) - tmp_h[i](0));//FIXME: compare this with andy's code
+    Dx(ier  ) =  1/data->dx * (tmp_l[i](0) - tmp_h[i](0));
     Dx(ier+1) =  1/data->dx * (tmp_l[i](1) - tmp_h[i](1));
     Dx(ier+2) =  1/data->dx * (tmp_l[i](2) - tmp_h[i](2));
-
-//    Dx(ier  ) =  1/(10.0/60.0) * (tmp_l[i](0) - tmp_h[i](0));//FIXME: delete this
-//    Dx(ier+1) =  1/(10.0/60.0) * (tmp_l[i](1) - tmp_h[i](1));
-//    Dx(ier+2) =  1/(10.0/60.0) * (tmp_l[i](2) - tmp_h[i](2));
   }
 
-  std::cout << "____________Dissipation (divided by dx) is: _______________" << std::endl;
-  std::cout << Dx << std::endl;
+  std::cout << "____________RHS Dissipation (divided by dx) is: _______________" << std::endl;
+  //std::cout << Dx << std::endl;
   b = b + problem->dt * Dx;
 }
 
@@ -406,19 +330,13 @@ void Solver::calcSx(){
     tmp(3*i) = 0;
     tmp(3*i+1) = data->Pressure(i) * data->Sprime(data->X(i));
     tmp(3*i+2) = 0;
-    //tmp(3*i) = 1;
-    //tmp(3*i+1) = 1;
-    //tmp(3*i+2) = 1;
   }
-  //std::cout << "pressure at index 0 is " << data->Pressure(0) << std::endl;
-  std::cout << "S contributions to RHS\n" << std::setprecision(16) << tmp << std::endl;
+  //std::cout << "S contributions to RHS\n" << std::setprecision(16) << tmp << std::endl;
   b = b + problem->dt * tmp;
 }
 
 /**
- *
- *Working!
- *
+ *This function calculates the dS/dQ from the quasi-euler equations and adds it to member A.
  * */
 void Solver::calculateAndAddS(){
   int local_matrix_size = data->q[0].size();
@@ -435,7 +353,7 @@ void Solver::calculateAndAddS(){
     Sjac.block<3,3>(ier, ier) += local_S_matrix * data->Sprime(data->X(i));
   }
 
-  std::cout << "Sjac is \n" << Sjac << std::endl;
+  //std::cout << "Sjac is \n" << Sjac << std::endl;
   A = A - problem->dt*Sjac;
 }
 
