@@ -72,7 +72,8 @@ int main(){
 	ProblemData data1(num_nodes,61, Left, Right, param1);
 //	ProblemData data2(num_nodes, 1, Left, Right, param2);
 
-	QuasiEuler problem1(&data1, 0.00392486326387686);
+	QuasiEuler problem1(&data1, 0.196243163193843);
+//	QuasiEuler problem1(&data1, 0.00392486326387686);
 	Solver solver(&data1, &problem1);
 
     std::cout << "S is " << std::endl;

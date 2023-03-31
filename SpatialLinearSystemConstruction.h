@@ -384,13 +384,17 @@ void Solver::XXXcalcDx(){
     tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
             - four_gamma_minus * problem->highOrderDifferencing(i-1);
     int ier = 3*i;
-    Dx(ier  ) =  1/data->dx * (tmp_l[i](0) - tmp_h[i](0));
+    Dx(ier  ) =  1/data->dx * (tmp_l[i](0) - tmp_h[i](0));//FIXME: compare this with andy's code
     Dx(ier+1) =  1/data->dx * (tmp_l[i](1) - tmp_h[i](1));
     Dx(ier+2) =  1/data->dx * (tmp_l[i](2) - tmp_h[i](2));
+
+//    Dx(ier  ) =  1/(10.0/60.0) * (tmp_l[i](0) - tmp_h[i](0));//FIXME: delete this
+//    Dx(ier+1) =  1/(10.0/60.0) * (tmp_l[i](1) - tmp_h[i](1));
+//    Dx(ier+2) =  1/(10.0/60.0) * (tmp_l[i](2) - tmp_h[i](2));
   }
 
-  std::cout << "____________Dissipation (NOT divided by dx) is: _______________" << std::endl;
-  std::cout << data->dx * Dx << std::endl;
+  std::cout << "____________Dissipation (divided by dx) is: _______________" << std::endl;
+  std::cout << Dx << std::endl;
   b = b + problem->dt * Dx;
 }
 
