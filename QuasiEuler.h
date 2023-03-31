@@ -103,8 +103,16 @@ void QuasiEuler::calculateSensorContributions(){
 double
 QuasiEuler::calc_lambda2_half(const int a_i)
 {
-  double lambda_2 = 0.5 *
-      (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i+1));
+  double lambda_2;
+  if (a_i < data->q.size()-1)
+  {
+    lambda_2 = 0.5 *
+        (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i+1));
+  }
+  else
+  {
+    lambda_2 = sensor_contributions(a_i,0) * sigma(a_i);
+  }
   return lambda_2;
 }
 
@@ -115,8 +123,16 @@ QuasiEuler::calc_lambda2_half(const int a_i)
 double
 QuasiEuler::calc_lambda4_half(const int a_i)
 {
-  double lambda_4 = 0.5 *
-      (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i+1));
+  double lambda_4;
+  if (a_i < data->q.size())
+  {
+    lambda_4 = 0.5 *
+        (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i+1));
+  }
+  else
+  {
+    lambda_4 = sensor_contributions(a_i,0) * sigma(a_i);
+  }
   return lambda_4;
 }
 
