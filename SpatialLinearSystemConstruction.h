@@ -357,18 +357,18 @@ void Solver::XXXcalcDx(){
     if (i-1 < 0)
     {
       two_gamma_plus  = problem->calc_lambda2_half(sensor_node);
-      two_gamma_minus = 0;
+      two_gamma_minus = two_gamma_plus;
 
       four_gamma_plus = problem->calc_lambda4_half(sensor_node);
-      four_gamma_minus = 0;
+      four_gamma_minus = four_gamma_plus;
     }
     else if(i+1 >= data->q.size())
     {
-      two_gamma_plus  = 0;
       two_gamma_minus = problem->calc_lambda2_half(sensor_node-1);
+      two_gamma_plus = two_gamma_minus;
 
-      four_gamma_plus = 0;
       four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
+      four_gamma_plus = four_gamma_minus;
     }
     else
     {
