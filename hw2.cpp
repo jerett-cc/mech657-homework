@@ -35,9 +35,10 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_nodes = 20;
-  int num_iterations = 10;
+	int num_nodes = 99;
+  int num_iterations = 100;
   double max_vel = 315.;
+  double tol = 1e-9;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -163,7 +164,8 @@ int main(){
      std::cout << "____________________________________" << std::endl;
      solver.setupSystem();
      solver.solveSystem();
-     data1.printQuantities("step-" + std::to_string(i));
+//     data1.printQuantities("step-" + std::to_string(i));
+     data1.printQuantities("problem1");
      std::cout << "new q is" << std::endl;
      std::cout << data1.getQVect() << std::endl;
      std::cout << "________Iteration over__________________________"<< std::endl;

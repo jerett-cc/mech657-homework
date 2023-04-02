@@ -17,7 +17,6 @@
 class Solver{
   public:
     std::vector<Eigen::Vector3d> delta_Q;//solution vector
-    double step_error = 1.0;
     void setupSystem();
     void solveSystem();
     Solver(ProblemData *data, QuasiEuler *problem)
@@ -31,7 +30,7 @@ class Solver{
       b = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
       assert(A.cols() == data->q.size() * 3);//FIXME: will this assertion be tru in more than one dim?
     }
-    double error();
+    double L2Error();
 //  private: //FIXME: make some of these private??
     Eigen::MatrixXd A;
     Eigen::VectorXd b;
@@ -53,9 +52,16 @@ class Solver{
     void calcSx();
 };
 
-double Solver::error(){
+/**
+ * returns the little el2 norm of deltaQ the change in Q for the given time step
+ */
+double Solver::L2Error(){
   double tmp = 0;
-  return -300.0;
+  for (int i = 0; i < delta_Q.size(); ++i)
+  {
+    tmp += delta_Q[i].squaredNorm();
+  }
+  return std::sqrt(tmp);
 }
 
 void Solver::setupSystem(){
@@ -140,10 +146,10 @@ void Solver::calculateAndAddL(){
       && "matrices for dissipation and system not same dimensions");
 
 
-  std::cout << "identity matrix: \n" << identity << std::endl;
+//  std::cout << "identity matrix: \n" << identity << std::endl;
 
-  std::cout << "result matrix: \n" << result << std::endl;
-  std::cout << "Solving high order stencil." << std::endl;
+//  std::cout << "result matrix: \n" << result << std::endl;
+//  std::cout << "Solving high order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
   {
     //this sets up the vector of coefficients {lambda-1/2, lambda1/2} at each node point
@@ -171,7 +177,7 @@ void Solver::calculateAndAddL(){
     stencil_high_order.block<3,3>(i*3, (i+4)*3) = -gamma[1]*(identity);
   }
   //solve for low order stencil
-  std::cout << "Calculating low order stencil." << std::endl;
+//  std::cout << "Calculating low order stencil." << std::endl;
   for (int i = 0; i < data->q.size(); ++i)//loop through each node
   {
     std::vector<double> gamma(2);
@@ -209,7 +215,7 @@ void Solver::calculateAndAddL(){
   // std::cout << "Matrix dissipation: \n" << 1.0/ data->dx * result << std::endl;
   result = problem->dt / data->dx * result;
   //std::cout << "matrix dissipation from e4 and e2 contribution\n" << result  <<std::endl;
-  A = A + result;
+  A = A - result;
 }
 
 /**

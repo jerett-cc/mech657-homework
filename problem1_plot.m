@@ -1,33 +1,12 @@
 close all; clear all; clc;
 
-C = csvread("step-4_velocity.out");
+C = csvread("problem1_velocity.out");
 C1 = csvread("velocity_number.txt");
 
 
 
-B = csvread("step-4_pressure.out");
-Bnew = [ 0, 97239.4
- 0.47619, 96514.9
- 0.952381, 95585.7
- 1.42857, 94404.1
- 1.90476, 92925.2
- 2.38095, 91122
- 2.85714, 89012.4
- 3.33333, 86696.8
- 3.80952, 84397.6
- 4.28571, 82473.4
- 4.7619, 81353.5
- 5.2381, 81254.6
- 5.71429, 81645
- 6.19048, 82384.6
- 6.66667, 83402.3
- 7.14286, 84613.3
- 7.61905, 85934
- 8.09524, 87291.8
- 8.57143, 88629.2
- 9.04762, 89904.9
- 9.52381, 91092.1
- 10, 92176]
+my_pressure = csvread("problem1_pressure.out");
+exact_pressure = csvread("pressure_number.txt")
 
 P =[
 99319.88599805532
@@ -52,19 +31,19 @@ P =[
 92227.95877175649
     ]
 
-figure()
-plot(Bnew(:,1), C(:));
-hold on
-plot(C1(:,2), C1(:,1));
-ylabel("velocity")
-legend(["20 grid solution", "actual"])
+% figure()
+% plot(Bnew(:,1), C(:,1));
+% hold on
+% plot(C1(:,2), C1(:,1));
+% ylabel("velocity")
+% legend(["20 grid solution", "actual"])
 
 figure()
-plot(B(:,1), B(:,2));
+plot(my_pressure(:,1), my_pressure(:,2));
 hold on
-plot(Bnew(2:21,1), P);
+plot(exact_pressure(:,2), exact_pressure(:,1));
 ylabel("pressure in Pa")
-legend(["actual", "20 grid solution"])
+legend(["mine", "20 grid solution"])
 
 
 
@@ -74,7 +53,7 @@ legend(["actual", "20 grid solution"])
 % plot(Bnew(:,1), C(:,1));
 % ylabel("temperature in K")
 
-D = csvread("step-4_density.out");
+D = csvread("problem1_density.out");
 D1 = csvread("density_number.txt");
 
 figure()
