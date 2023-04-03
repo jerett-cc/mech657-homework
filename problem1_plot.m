@@ -1,11 +1,11 @@
 close all; clear all; clc;
 
-C = csvread("problem2_velocity.out");
+C = csvread("problem1_velocity.out");
 C1 = csvread("velocity_number.txt");
 
 
 
-my_pressure = csvread("problem2_pressure.out");
+my_pressure = csvread("problem1_pressure.out");
 exact_pressure = csvread("pressure_number.txt")
 
 P =[
@@ -39,11 +39,12 @@ P =[
 % legend(["20 grid solution", "actual"])
 
 figure()
-plot(my_pressure(:,1), my_pressure(:,2));
+% plot(my_pressure(:,1), my_pressure(:,2), 'linewidth',2);
+scatter(my_pressure(:,1), my_pressure(:,2),'+');
 hold on
-plot(exact_pressure(:,2), exact_pressure(:,1));
+plot(exact_pressure(:,2), exact_pressure(:,1), 'LineWidth' , 2);
 ylabel("pressure in Pa")
-legend(["mine", "20 grid solution"])
+legend(["Computed solution 99 grid points", "Exact solution"])
 
 
 
@@ -53,7 +54,7 @@ legend(["mine", "20 grid solution"])
 % plot(Bnew(:,1), C(:,1));
 % ylabel("temperature in K")
 
-D = csvread("problem2_density.out");
+D = csvread("problem1_density.out");
 D1 = csvread("density_number.txt");
 
 figure()

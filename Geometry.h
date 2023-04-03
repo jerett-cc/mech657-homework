@@ -356,7 +356,7 @@ void ProblemData::setInitialCondition(const double gamma,
 
   boundary_pressure = pressurer;
 
-#if 0
+#if 1
   std::cout << "______________Initializing with constant value from BC____________" << std::endl;
   for(unsigned int i = 0; i<q.size(); i++)
   {
@@ -389,7 +389,7 @@ void ProblemData::setInitialCondition(const double gamma,
   boundary_Er(2) = velocityr * (energyr + pressurer) * S(Right);
 #endif
 
-#if 1
+#if 0
   std::cout << "______________Initializing problem 2 with constant value from BC, but split L,R of x=7____________" << std::endl;
   for(unsigned int i = 0; i<q.size(); i++)
   {

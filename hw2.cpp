@@ -26,6 +26,31 @@
  */
 
 
+void solveProblem(ProblemData &data,
+                  QuasiEuler &problem,
+                  Solver &solver,
+                  parameters & param,
+                  const int num_iterations,
+                  std::string fname)
+{
+    data.setInitialCondition(param.gamma, param.inlet_pressure, param.total_temp, param.R, param.s_star);
+    for (int i = 0; i<num_iterations;++i)
+   {
+     solver.reinit();
+     problem.calculateSensorContributions();
+     std:: cout << "contributions ____" << std::endl;
+     std::cout << problem.sensor_contributions << std::endl;
+     std::cout << "____________________________________" << std::endl;
+     solver.setupSystem();
+     solver.solveSystem();
+//     data1.printQuantities("step-" + std::to_string(i));
+     data.printQuantities(fname);
+     std::cout << "new q is" << std::endl;
+     std::cout << data.getQVect() << std::endl;
+     std::cout << "________Iteration over__________________________"<< std::endl;
+   }
+};
+
 //implements a second order finite difference algorithm
 int main(){
 
@@ -81,7 +106,7 @@ int main(){
 	Solver solver2(&data2, &problem2);
 
 	QuasiEuler problem1(&data1, cfl1, max_vel);
-	Solver solver(&data1, &problem1);
+	Solver solver1(&data1, &problem1);
 
   data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
   data2.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_2);
@@ -100,8 +125,8 @@ int main(){
 
   std::cout << "-----------------------------" << std::endl;
   std::cout << "testing setupSystem" << std::endl;
-  solver.reinit();
-  solver.setupSystem();
+  solver1.reinit();
+  solver1.setupSystem();
 
 //   solver.reinit();
 //  data1.E(-1);
@@ -131,20 +156,7 @@ int main(){
 
 //  data1.printQuantities("two step");
    std::cout << "Testing 100 iterations" << std::endl;
-   for (int i = 0; i<num_iterations;++i)
-   {
-     solver2.reinit();
-     problem2.calculateSensorContributions();
-     std:: cout << "contributions ____" << std::endl;
-     std::cout << problem2.sensor_contributions << std::endl;
-     std::cout << "____________________________________" << std::endl;
-     solver2.setupSystem();
-     solver2.solveSystem();
-//     data1.printQuantities("step-" + std::to_string(i));
-     data2.printQuantities("problem2");
-     std::cout << "new q is" << std::endl;
-     std::cout << data2.getQVect() << std::endl;
-     std::cout << "________Iteration over__________________________"<< std::endl;
-   }
+   solveProblem(data1, problem1, solver1, param1, num_iterations, "problem1");
+
 return 0;
 }
