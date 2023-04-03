@@ -1,11 +1,11 @@
 close all; clear all; clc;
 
-C = csvread("problem1_velocity.out");
+C = csvread("problem2_velocity.out");
 C1 = csvread("velocity_number.txt");
 
 
 
-my_pressure = csvread("problem1_pressure.out");
+my_pressure = csvread("problem2_pressure.out");
 exact_pressure = csvread("pressure_number.txt")
 
 P =[
@@ -53,7 +53,7 @@ legend(["mine", "20 grid solution"])
 % plot(Bnew(:,1), C(:,1));
 % ylabel("temperature in K")
 
-D = csvread("problem1_density.out");
+D = csvread("problem2_density.out");
 D1 = csvread("density_number.txt");
 
 figure()
