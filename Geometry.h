@@ -29,6 +29,7 @@ struct parameters{
     parameters(const parameters&) = default;
 };
 
+
 /**
  * this class stores the solution vector and boundary conditions for the homework,
  * as well as methods to calculate the basic variables like pressure, density, mach, temp.
@@ -78,18 +79,18 @@ class ProblemData{
      x(number_nodes), q(number_nodes), problem_size(number_nodes*3),
      parameter(param), R_index(number_nodes), L_index(-1)
     {
-//      std::cout << number_nodes << std::endl;
       dx = (Right-Left)/(number_nodes+1);
-//      std::cout << "dx is " <<  dx << std::endl;
       for (int i=0; i < x.size(); ++i)
       {
         x(i) = Left + (i+1)*dx;
-//        std::cout << X(i) << std::endl;
       }
-//      std::cout << highest_index << std::endl;
     }
 
-    double convert_pressure_to_energy(const double pressure, const double density, const double velocity, const double gamma){
+    double convert_pressure_to_energy(const double pressure,
+                                      const double density,
+                                      const double velocity,
+                                      const double gamma)
+    {
       return pressure/(density*(gamma-1.0)) + 0.5 * velocity*velocity;
     }
     void updateBV();
@@ -112,14 +113,18 @@ class ProblemData{
  *
  * which can be determined from Q by dividing the first and last entries in vector Q.
  */
-double ProblemData::Energy(const int idx){
+double
+ProblemData::Energy(const int idx)
+{
       return Q(idx)(2)/S(X(idx));
 }
 
 /**
  * returns 1 if index is out of bounds for Q, and 0 if not.
  */
-bool ProblemData::outOfBounds(int idx){
+bool
+ProblemData::outOfBounds(int idx)
+{
   bool out_of_bounds = (idx <0 || idx > highest_index) ? 1:0;
   return out_of_bounds;
 }
@@ -228,7 +233,9 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  */
 double ProblemData::Pressure(const int idx){
   //return (parameter.gamma -1.0) * (Energy(idx) - 0.5/Density(idx) * (std::pow(Density(idx) * Velocity(idx), 2)));
-return (parameter.gamma -1.0) * (Energy(idx) - 0.5/Density(idx) * Density(idx) * Velocity(idx) * Density(idx) * Velocity(idx));
+  return (parameter.gamma -1.0) * (Energy(idx)
+                                   - (0.5/Density(idx) * Density(idx)
+                                      * Velocity(idx) * Density(idx) * Velocity(idx)));
 }
 
 /**
@@ -461,10 +468,6 @@ void ProblemData::setInitialCondition(const double gamma,
   boundary_Er(2) = velocity_vec(21) * (energyr + pressure_vec(21)) * S(X(22));
 
 #endif
-//  std::cout << "_____Initial vectors Ql Qr___________" << std::endl;
-//  std::cout << boundary_Ql << std::endl << " + " << std::endl <<  boundary_Qr << std::endl;
-//  std::cout << "_____Initial vectors El Er___________" << std::endl;
-//  std::cout << boundary_El << std::endl << " + " << std::endl <<  boundary_Er << std::endl;
 }
 
 /**

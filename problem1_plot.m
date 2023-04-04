@@ -40,9 +40,9 @@ P =[
 
 figure()
 % plot(my_pressure(:,1), my_pressure(:,2), 'linewidth',2);
-scatter(my_pressure(:,1), my_pressure(:,2),'+');
+scatter(my_pressure(:,1), my_pressure(:,2),'.');
 hold on
-plot(exact_pressure(:,2), exact_pressure(:,1), 'LineWidth' , 2);
+plot(exact_pressure(:,2), exact_pressure(:,1), 'LineWidth' , 1);
 ylabel("pressure in Pa")
 legend(["Computed solution 99 grid points", "Exact solution"])
 
