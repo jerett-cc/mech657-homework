@@ -468,6 +468,26 @@ void ProblemData::setInitialCondition(const double gamma,
   boundary_Er(2) = velocity_vec(21) * (energyr + pressure_vec(21)) * S(X(22));
 
 #endif
+
+#if 1
+  double pressureL = 1e5;
+  double densityL = 1;
+  double pressureR = 1e4;
+  double densityR = 0.125;
+  double velocityR = 0;
+  double velocityL = velocityR;
+  for(unsigned int i=0; i < q.size(); i++)
+  {
+    if(X(i)<7.0)
+    {
+      q[i](0) = 1e5*S(X(i));
+      q[i](1) = 1e5*0.0*S(X(i));
+      q[i](2) = density_vec(i+1)*convert_pressure_to_energy(pressure_vec(i+1), density_vec(i+1), velocity_vec(i+1), parameter.gamma)*S(X(i));
+
+    }
+  }
+
+#endif
 }
 
 /**
