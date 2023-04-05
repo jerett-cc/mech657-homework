@@ -5,7 +5,7 @@ C1 = csvread("velocity_number.txt");
 
 
 
-my_pressure = csvread("problem1_pressure.out");
+my_pressure = csvread("problem3_pressure.out");
 exact_pressure = csvread("pressure_number.txt")
 
 P =[
@@ -54,12 +54,12 @@ legend(["Computed solution 99 grid points", "Exact solution"])
 % plot(Bnew(:,1), C(:,1));
 % ylabel("temperature in K")
 
-D = csvread("problem1_density.out");
+D = csvread("problem3_density.out");
 D1 = csvread("density_number.txt");
 
 figure()
 plot(D(:,1), D(:,2));
 hold on
-plot(D1(:,2), D1(:,1));
-legend(["calculated", "actual"])
+% plot(D1(:,2), D1(:,1));
+% legend(["calculated", "actual"])
 ylabel("density (kg/m^3)")

@@ -26,7 +26,7 @@
  */
 
 
-void solveProblem(ProblemData &data,
+void solveSteadyProblem(ProblemData &data,
                   QuasiEuler &problem,
                   Solver &solver,
                   parameters & param,
@@ -56,6 +56,36 @@ void solveProblem(ProblemData &data,
               << "Num iterations: " << iteration <<  std::endl;
 };
 
+void solveTimeDependentProblem(ProblemData &data,
+                               QuasiEuler &problem,
+                               Solver &solver,
+                               parameters & param,
+                               std::string fname)
+{
+    data.setInitialCondition(param.gamma, param.inlet_pressure, param.total_temp, param.R, param.s_star);
+    unsigned int iteration=0;
+    double error = 1;
+    double t = 0;
+    while (t < solver.end_time)
+   {
+     solver.reinit();
+     problem.calculateSensorContributions();
+     std:: cout << "contributions ____" << std::endl;
+     std::cout << problem.sensor_contributions << std::endl;
+     std::cout << "____________________________________" << std::endl;
+     solver.setupSystem();
+     solver.solveSystem();
+     data.printQuantities(fname);
+     std::cout << "new q is" << std::endl;
+     std::cout << data.getQVect() << std::endl;
+     std::cout << "________Iteration over__________________________"<< std::endl;
+     t += problem.dt;
+     ++iteration;
+     error = solver.L2Error();
+   }
+    std::cout << "Num iterations: " << iteration <<  std::endl;
+};
+
 //implements a second order finite difference algorithm
 int main(){
 
@@ -66,9 +96,9 @@ int main(){
 	double gamma = 1.4;
 	double R = 287.;
 	int num_nodes = 99;
-    int num_iterations = 100;
-    double max_vel = 315.;
-    double tol = 1e-9;
+	int num_iterations = 100;
+	double max_vel = 315.;
+	double tol = 1e-9;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
@@ -87,20 +117,25 @@ int main(){
 	double initial_density_right_3 = 0.125;
 	double initial_density_left_3 = 1;
 	double end_time_3 = 0.0061;
-    double cfl3 = 0.5;
+	double cfl3 = 0.5;
 
 	parameters param1(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_1);
 	parameters param2(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_2);
+	parameters param3(initial_pressure_right_3, 1, gamma, R, S_star_1);
 
   //FIXME: what is the 61 here??
 	ProblemData data1(num_nodes,61, Left, Right, param1);
 	ProblemData data2(num_nodes, 1, Left, Right, param2);
+	ProblemData data3(num_nodes, 1, Left, Right, param3);
 
 	QuasiEuler problem2(&data2, cfl1, max_vel);
 	Solver solver2(&data2, &problem2);
 
 	QuasiEuler problem1(&data1, cfl1, max_vel);
 	Solver solver1(&data1, &problem1);
+
+	QuasiEuler problem3(&data3, cfl3, max_vel);
+	Solver solver3(&data3, &problem3, end_time_3);
 
   data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
   data2.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_2);
@@ -119,7 +154,8 @@ int main(){
   solver1.setupSystem();
 
    std::cout << "Testing 100 iterations" << std::endl;
-   solveProblem(data1, problem1, solver1, param1, num_iterations, "problem1");
+//   solveSteadyProblem(data1, problem1, solver1, param1, num_iterations, "problem1");
+   solveTimeDependentProblem(data3, problem3, solver3, param3, "problem3");
 
 return 0;
 }

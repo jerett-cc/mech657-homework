@@ -19,7 +19,7 @@ class Solver{
     std::vector<Eigen::Vector3d> delta_Q;//solution vector
     void setupSystem();
     void solveSystem();
-    Solver(ProblemData *data, QuasiEuler *problem)
+    Solver(ProblemData *data, QuasiEuler *problem, double t_end = 0)
       : data(data), problem(problem)
       , stencil_rows(data->q.size()*3)
       , stencil_cols(3*(data->q.size()+4))
@@ -29,6 +29,7 @@ class Solver{
       A = Eigen::MatrixXd::Identity(data->getQVect().size(), data->getQVect().size());
       b = Eigen::VectorXd::Zero(data->getQVect().size(), 1);
       assert(A.cols() == data->q.size() * 3);//FIXME: will this assertion be tru in more than one dim?
+      end_time = t_end;
     }
     double L2Error();
 //  private: //FIXME: make some of these private??
@@ -37,6 +38,7 @@ class Solver{
     Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
     int stencil_cols;
     int stencil_rows;
+    double end_time;
     ProblemData *data;
     QuasiEuler *problem;
 
