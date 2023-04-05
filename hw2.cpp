@@ -117,7 +117,7 @@ int main(){
 	double initial_density_right_3 = 0.125;
 	double initial_density_left_3 = 1;
 	double end_time_3 = 0.0061;
-	double cfl3 = 0.5;
+	double cfl3 = 0.9;
 
 	parameters param1(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_1);
 	parameters param2(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_2);
@@ -154,8 +154,8 @@ int main(){
   solver1.setupSystem();
 
    std::cout << "Testing 100 iterations" << std::endl;
-//   solveSteadyProblem(data1, problem1, solver1, param1, num_iterations, "problem1");
-   solveTimeDependentProblem(data3, problem3, solver3, param3, "problem3");
+  solveSteadyProblem(data1, problem1, solver1, param1, num_iterations, "problem1");
+//    solveTimeDependentProblem(data3, problem3, solver3, param3, "problem3");
 
 return 0;
 }
