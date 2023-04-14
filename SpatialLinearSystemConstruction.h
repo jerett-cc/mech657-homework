@@ -119,6 +119,8 @@ void Solver::setup_b(){
   calcDe();
   calcDx();
   calcSx();
+  std::cout <<"_________________" <<"B:\n" << b/problem->dt
+    <<"\n_______________________________\n";
 }
 
 /**
@@ -127,6 +129,8 @@ void Solver::setup_A(){
   calculateAndAddSpatialMatrix();
   calculateAndAddL();
   calculateAndAddS();
+  std::cout << "______________________\n" << A/problem->dt
+    << "____________________\n";
 }
 
 /**
@@ -167,8 +171,6 @@ void Solver::calculateAndAddL(){
   assert(result.cols()==A.cols()
       && result.rows() == A.rows()
       && "matrices for dissipation and system not same dimensions");
-
-
 //  std::cout << "identity matrix: \n" << identity << std::endl;
 
 //  std::cout << "result matrix: \n" << result << std::endl;
@@ -268,80 +270,134 @@ void Solver::calcDe(){
  *This function calculates the artificial dissipation for the RHS of the quasi Euler system and
  *adds it to member variable b.
  * */
+// void Solver::calcDx(){
+//   Eigen::VectorXd Dx = Eigen::VectorXd::Zero(data->getQVect().size());
+//   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
+//   std::vector<Eigen::Vector3d> tmp_l(data->q.size());
+//   //print the E vector
+//   std::cout << "En:\n";
+//   for(int i=0; i < data->q.size(); ++i)
+//   {
+//     std::cout << std::setprecision(16) << data->E(i) << "\n";
+//   }
+
+//   //
+//   for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
+//   {
+//     double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
+//     //special case for first node
+//     if (i-1 < 0)
+//     {
+//       two_gamma_plus  = problem->calc_lambda2_half(i);
+//       two_gamma_minus = two_gamma_plus;
+
+//       four_gamma_plus = problem->calc_lambda4_half(i);
+//       four_gamma_minus = four_gamma_plus;
+//     }
+//     else if(i+1 >= data->q.size())
+//     {
+//       two_gamma_minus = problem->calc_lambda2_half(i-1);
+//       two_gamma_plus = two_gamma_minus;
+
+//       four_gamma_minus = problem->calc_lambda4_half(i-1);
+//       four_gamma_plus = four_gamma_minus;
+//     }
+//     else
+//     {
+//       two_gamma_plus  = problem->calc_lambda2_half(i);
+//       two_gamma_minus = problem->calc_lambda2_half(i-1);
+
+//       four_gamma_plus = problem->calc_lambda4_half(i);
+//       four_gamma_minus = problem->calc_lambda4_half(i-1);
+//     }
+
+//     if(i==0)
+//     {
+//       tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
+//         - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+//       tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
+//         - four_gamma_minus * problem->boundaryDifferencing(i-1);
+//     }
+//     else if(i==data->highest_index)
+//     {
+//       tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
+//         - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+//       tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
+//         - four_gamma_minus * problem->highOrderDifferencing(i-1);
+//     }
+//     else
+//     {
+//     tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
+//       - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+
+//     tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
+//       - four_gamma_minus * problem->highOrderDifferencing(i-1);
+//     }
+//     int ier = 3*i;
+//     Dx(ier  ) =  1.0/data->dx * (tmp_l[i](0) - tmp_h[i](0));
+//     Dx(ier+1) =  1.0/data->dx * (tmp_l[i](1) - tmp_h[i](1));
+//     Dx(ier+2) =  1.0/data->dx * (tmp_l[i](2) - tmp_h[i](2));
+//   }
+//   std::cout << "Dn:\n" << Dx << "\n";
+//   b = b + problem->dt * Dx;
+// }
 void Solver::calcDx(){
   Eigen::VectorXd Dx = Eigen::VectorXd::Zero(data->getQVect().size());
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
   std::vector<Eigen::Vector3d> tmp_l(data->q.size());
-
-  for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
+  //print the E vector
+  std::cout << "En:\n";
+  for(int i=0; i < data->q.size(); ++i)
   {
-    int sensor_node = i;
-    double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
-    //special case for first node
-    if (i-1 < 0)
-    {
-      two_gamma_plus  = problem->calc_lambda2_half(sensor_node);
-      two_gamma_minus = two_gamma_plus;
-
-      four_gamma_plus = problem->calc_lambda4_half(sensor_node);
-      four_gamma_minus = four_gamma_plus;
-    }
-    else if(i+1 >= data->q.size())
-    {
-      two_gamma_minus = problem->calc_lambda2_half(sensor_node-1);
-      two_gamma_plus = two_gamma_minus;
-
-      four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
-      four_gamma_plus = four_gamma_minus;
-    }
-    else
-    {
-      two_gamma_plus  = problem->calc_lambda2_half(sensor_node);
-      two_gamma_minus = problem->calc_lambda2_half(sensor_node-1);
-
-      four_gamma_plus = problem->calc_lambda4_half(sensor_node);
-      four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
-    }
-
-    if(i==0)
-    {
-      tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-        - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-      tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
-        - four_gamma_minus * problem->boundaryDifferencing(i-1);
-    }
-    else if(i==data->highest_index)
-    {
-      tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-        - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-      tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
-        - four_gamma_minus * problem->highOrderDifferencing(i-1);
-    }
-    else
-    {
-    tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-      - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-
-    tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
-      - four_gamma_minus * problem->highOrderDifferencing(i-1);
-    }
-    int ier = 3*i;
-    Dx(ier  ) =  1.0/data->dx * (tmp_l[i](0) - tmp_h[i](0));
-    Dx(ier+1) =  1.0/data->dx * (tmp_l[i](1) - tmp_h[i](1));
-    Dx(ier+2) =  1.0/data->dx * (tmp_l[i](2) - tmp_h[i](2));
+    std::cout << std::setprecision(16) << data->E(i) << "\n";
   }
-  //std::cout << "Dn:\n" << Dx << "\n";
+
+  for (int i = 1; i < data->q.size()-1; ++i)//loop through all nodes
+  {
+    //not special case
+    tmp_l[i] = problem->calc_lambda2_half(i) * problem->lowOrderDifferencing(i)
+      - problem->calc_lambda2_half(i-1) * problem->lowOrderDifferencing(i-1);
+    tmp_h[i] = problem->calc_lambda4_half(i) * problem->highOrderDifferencing(i)
+      - problem->calc_lambda4_half(i-1) * problem->highOrderDifferencing(i-1);
+
+
+
+  }
+  int i=0;
+  tmp_l[i] = problem->calc_lambda2_half(i) * problem->lowOrderDifferencing(i)
+    - problem->calc_lambda2_half(i-1) * problem->lowOrderDifferencing(i-1);
+  tmp_h[i] = problem->calc_lambda4_half(i) * problem->highOrderDifferencing(i)
+    - problem->calc_lambda4_half(i-1) * (problem->lowOrderDifferencing(i)
+                                         - problem->lowOrderDifferencing(i-1));
+
+  i=data->q.size()-1;
+  tmp_l[i] = problem->calc_lambda2_half(i) * problem->lowOrderDifferencing(i)
+    - problem->calc_lambda2_half(i-1) * problem->lowOrderDifferencing(i-1);
+  tmp_h[i] = problem->calc_lambda4_half(i) * (problem->lowOrderDifferencing(i)
+                                              -problem->lowOrderDifferencing(i-1))
+    - problem->calc_lambda4_half(i-1) * problem->highOrderDifferencing(i-1);
+
+  for(int i=0; i< data->q.size();++i)
+  {
+    int ier = 3*i;
+     Dx(ier  ) =  1.0/data->dx * (tmp_l[i](0) - tmp_h[i](0));
+     Dx(ier+1) =  1.0/data->dx * (tmp_l[i](1) - tmp_h[i](1));
+     Dx(ier+2) =  1.0/data->dx * (tmp_l[i](2) - tmp_h[i](2));
+  }
+  std::cout << "Dn\n" << Dx << "\n";
   b = b + problem->dt * Dx;
 }
 
 void Solver::calcSx(){
   Eigen::VectorXd tmp = Eigen::VectorXd::Zero(data->getQVect().size());
+  std::cout << "S :\n";
   for(unsigned int i = 0; i < data->q.size(); ++i)
   {
     tmp(3*i) = 0;
     tmp(3*i+1) = data->Pressure(i) * data->Sprime(data->X(i));
     tmp(3*i+2) = 0;
   }
+  std::cout << tmp << "\n";
   b = b + problem->dt * tmp;
 }
 

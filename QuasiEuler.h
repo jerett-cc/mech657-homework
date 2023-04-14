@@ -94,18 +94,22 @@ void QuasiEuler::calculateSensorContributions(){
  * used to compute RHS dissipation and the matrix L
  */
 double
-QuasiEuler::calc_lambda2_half(const int a_i)
+QuasiEuler::calc_lambda2_half(int a_i)
 {
+  std::cout << data->q.size() << "\n";
   double lambda_2;
-  if (a_i < data->q.size()-1)
+  if(a_i ==-1)
   {
-    lambda_2 = 0.5 *
-        (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i+1));
+    a_i=0;
   }
-  else
+  else if(a_i==data->q.size()-1)
   {
-    lambda_2 = sensor_contributions(a_i,0) * sigma(a_i);
+    a_i = data->q.size()-2;
   }
+  assert(a_i>=0 && a_i <=data->q.size()-1 && "out of bounds");
+  lambda_2 = 0.5 *
+    (sensor_contributions(a_i,0) * sigma(a_i) + sensor_contributions(a_i+1, 0) * sigma(a_i+1));
+
   return lambda_2;
 }
 
@@ -114,18 +118,21 @@ QuasiEuler::calc_lambda2_half(const int a_i)
  * used to compute RHS dissipation and the matrix L
  */
 double
-QuasiEuler::calc_lambda4_half(const int a_i)
+QuasiEuler::calc_lambda4_half(int a_i)
 {
   double lambda_4;
-  if (a_i < data->q.size())
+  if(a_i ==-1)
   {
-    lambda_4 = 0.5 *
-        (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i+1));
+    a_i=0;
   }
-  else
+  else if(a_i==data->q.size()-1)
   {
-    lambda_4 = sensor_contributions(a_i,1) * sigma(a_i);
+    a_i = data->q.size()-2;
   }
+
+  lambda_4 = 0.5 *
+    (sensor_contributions(a_i,1) * sigma(a_i) + sensor_contributions(a_i+1, 1) * sigma(a_i+1));
+
   return lambda_4;
 }
 

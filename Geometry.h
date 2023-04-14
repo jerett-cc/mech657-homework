@@ -204,6 +204,7 @@ Eigen::VectorXd ProblemData::getQVect(){
   }
   return tmp;
 }
+
 /**
  * this should return E at the specified index, if idx is out of bounds, it returns a constant
  * vector that is the left most or right most allowed value of E FIXME TEST THIS
@@ -366,20 +367,20 @@ void ProblemData::setInitialCondition(const double gamma,
 
   boundary_pressure = pressurer;
 
-#if 0
-  densityl  = 1.1409;
-  pressurel = 97534.313;
-  velocityl = 65.4510;
-  densityr  = 1.100838;
-  pressurer = 92772.111;
-  velocityr = 113.05605;
+#if 1
+  densityl  = 1.140912020114519;
+  pressurel = 97534.31315656686;
+  velocityl = 65.45103620868267;
+  densityr  = 1.100838456473181;
+  pressurer = 92772.11161768125;
+  velocityr = 113.0560581656475;
 
 
   std::cout << "______________Initializing with constant value from BC____________" << std::endl;
   for(unsigned int i = 0; i<q.size(); i++)
   {
     q[i](0) = densityl*S(X(i));
-    q[i](1) = densityl*velocityr*S(X(i));
+    q[i](1) = densityl*velocityl*S(X(i));
     q[i](2) = densityl*convert_pressure_to_energy(pressurel, densityl, velocityl, parameter.gamma)*S(X(i));
 
 //    q[i](0) = 1;
@@ -451,7 +452,7 @@ void ProblemData::setInitialCondition(const double gamma,
     //}
     q[i](0) = densityl*S(X(i));
     q[i](1) = densityl*velocityl*S(X(i));
-    q[i](2) = densityl*convert_pressure_to_energy(pressurer, densityl, velocityl, parameter.gamma)*S(X(i));
+    q[i](2) = densityl*convert_pressure_to_energy(pressurel, densityl, velocityl, parameter.gamma)*S(X(i));
     //std::cout << q[i] << std::endl;
   }
 
@@ -479,7 +480,7 @@ void ProblemData::setInitialCondition(const double gamma,
                        density_vec(21), pressure_vec(21), velocity_vec(21));
 #endif
 
-#if 1
+#if 0
   std::cout << "Initializing problem 3" << std::endl;
   double pressureL = 1e5;
   double densityL = 1;
