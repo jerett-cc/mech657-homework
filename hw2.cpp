@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <vector>
 #include "../Eigen/Dense"
 #include "../Eigen/IterativeLinearSolvers"
 
@@ -25,41 +26,66 @@
  * 			i. u = 300m/s, a = 315m/s
  */
 
+const double tol = 1e-9;
+
+template <typename vecT>
+void printError(vecT vec, std::string f_name)
+{
+  std::ofstream a_file;
+  a_file.open(f_name + ".out", std::ios::out | std::ios::trunc);
+
+  for (unsigned int i = 0; i< vec.size(); ++i)
+  {
+    a_file << vec[i] << std::endl;
+  }
+  a_file.close();
+
+}
 
 void solveSteadyProblem(ProblemData &data,
-                  QuasiEuler &problem,
-                  Solver &solver,
-                  parameters & param,
-                  const int num_iterations,
-                  std::string fname)
+                        QuasiEuler &problem,
+                        Solver &solver,
+                        parameters &param,
+                        const unsigned int num_iterations,
+                        const std::string fname)
 {
+    std::vector<double> err;
     data.setInitialCondition(param.gamma, param.inlet_pressure, param.total_temp, param.R, param.s_star);
     unsigned int iteration=0;
     double error = 1;
-    while (error > 1e-5 && iteration < num_iterations)
+    while (error > tol && iteration < num_iterations)
    {
      solver.reinit();
      problem.calculateSensorContributions();
-     std:: cout << "contributions ____" << std::endl;
-     std::cout << problem.sensor_contributions << std::endl;
-     std::cout << "____________________________________" << std::endl;
+     //std:: cout << "contributions ____" << std::endl;
+     //std::cout << problem.sensor_contributions << std::endl;
+     //std::cout << "____________________________________" << std::endl;
      solver.setupSystem();
      solver.solveSystem();
      data.printQuantities(fname);
-     std::cout << "new q is" << std::endl;
-     std::cout << data.getQVect() << std::endl;
-     std::cout << "________Iteration over__________________________"<< std::endl;
+     //std::cout << "new q is" << std::endl;
+     //std::cout << data.getQVect() << std::endl;
+     //std::cout << "________Iteration over__________________________"<< std::endl;
      ++iteration;
      error = solver.L2Error();
+
+     //std::cout << "Delta Q" << '\n';
+     //data.updateBV();
+     err.push_back(error);
    }
-    std::cout << "End Error: " << std::setprecision(16) <<solver.L2Error()
+    for(unsigned int i = 0; i < data.q.size(); ++i)
+    {
+      std::cout << solver.delta_Q[i] << '\n';
+    }
+    std::cout << "End Error: " << std::setprecision(16) <<solver.L2Error() << "\n"
               << "Num iterations: " << iteration <<  std::endl;
+    printError<std::vector<double>>(err, fname+"_error"+std::to_string((int)problem.cfl));
 };
 
 void solveTimeDependentProblem(ProblemData &data,
                                QuasiEuler &problem,
                                Solver &solver,
-                               parameters & param,
+                               parameters &param,
                                std::string fname)
 {
     data.setInitialCondition(param.gamma, param.inlet_pressure, param.total_temp, param.R, param.s_star);
@@ -96,20 +122,19 @@ int main(){
 	double gamma = 1.4;
 	double R = 287.;
 	int num_nodes = 99;
-	int num_iterations = 100;
+	unsigned int max_num_iterations = 2000;
 	double max_vel = 315.;
-	double tol = 1e-9;
 
 	//problem 1 additional parameters
 	double S_star_1 = 0.8;
 	double total_temperature_1 = 300;
 	double total_inlet_pressure_1 = 1e5;
-    double cfl1 = 50;
+    double cfl1 = 1000;
 
 	//problem 2 additional parameters
 	double shock_location = 7.;
 	double S_star_2 = 1.;
-    double cfl2 = 1.;
+    double cfl2 = 1;
 
 	//problem 3 additional parameters
 	double initial_pressure_right_3 = 1e4;
@@ -117,7 +142,7 @@ int main(){
 	double initial_density_right_3 = 0.125;
 	double initial_density_left_3 = 1;
 	double end_time_3 = 0.0061;
-	double cfl3 = 0.9;
+	double cfl3 = 0.5;
 
 	parameters param1(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_1);
 	parameters param2(total_inlet_pressure_1, total_temperature_1, gamma, R, S_star_2);
@@ -140,8 +165,8 @@ int main(){
   data1.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_1);
   data2.setInitialCondition(gamma, total_inlet_pressure_1, total_temperature_1, R, S_star_2);
 
-  data1.printQuantities("initial_problem");
-  data2.printQuantities("initial_problem2");
+  //data1.printQuantities("initial_problem");
+  //data2.printQuantities("initial_problem2");
 
   problem1.calculateSensorContributions();
   std::cout << "-----------------------------" << std::endl;
@@ -153,9 +178,9 @@ int main(){
   solver1.reinit();
   solver1.setupSystem();
 
-   std::cout << "Testing 100 iterations" << std::endl;
-  solveSteadyProblem(data1, problem1, solver1, param1, num_iterations, "problem1");
-//    solveTimeDependentProblem(data3, problem3, solver3, param3, "problem3");
-
+  std::cout << "Testing 100 iterations" << std::endl;
+//solveSteadyProblem(data2, problem2, solver2, param2, max_num_iterations, "./problem2figs/problem2");
+solveTimeDependentProblem(data3, problem3, solver3, param3, "./problem3figs/problem3");
+//solveSteadyProblem(data1, problem1, solver1, param1, max_num_iterations, "./problem1figs/problem1");
 return 0;
 }

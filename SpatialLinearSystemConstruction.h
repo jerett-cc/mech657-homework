@@ -32,6 +32,7 @@ class Solver{
       end_time = t_end;
     }
     double L2Error();
+    double infError();
 //  private: //FIXME: make some of these private??
     Eigen::MatrixXd A;
     Eigen::VectorXd b;
@@ -53,6 +54,24 @@ class Solver{
     void calcDx();
     void calcSx();
 };
+
+/**
+ * returns the l infinity norm of deltaQ
+ */
+
+double
+Solver::infError()
+{
+  double tmp;
+  double tmp_old;
+  for(unsigned int i=0; i < delta_Q.size(); ++i)
+  {
+    tmp_old = std::max(delta_Q[i](0), delta_Q[i](1));
+    tmp_old = std::max(delta_Q[i](2), tmp_old);
+    tmp = std::max(tmp, tmp_old);
+  }
+  return tmp;
+}
 
 /**
  * returns the little el2 norm of deltaQ the change in Q for the given time step
@@ -79,7 +98,9 @@ void Solver::setupSystem(){
 void Solver::solveSystem(){
 //  std::cout << "A is " << A << std::endl;
 //  std::cout << "b is " << b << std::endl;
-  Eigen::VectorXd delta_q = A.colPivHouseholderQr().solve(b);
+ Eigen::VectorXd delta_q = A.colPivHouseholderQr().solve(b);
+ //Eigen::VectorXd delta_q = A.fullPivLu().solve(b);
+
 //  std::cout << "step solution is \n" << delta_q << std::endl;
   for (int i=0; i<delta_Q.size(); ++i)
   {
@@ -206,7 +227,7 @@ void Solver::calculateAndAddL(){
     stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[1] - gamma[0])*(identity);
     stencil_low_order.block<3,3>(i*3, (i+3)*3) = gamma[1]*(identity);
   }
-  std::cout << "done" << std::endl;
+  //std::cout << "done" << std::endl;
   stencil_high_order += stencil_low_order;
   // std::cout << "Stencil before extraction: \n" << stencil_high_order << std::endl;
   //extract correct matrix
@@ -239,6 +260,7 @@ void Solver::calcDe(){
     DxE(j) = e3;
     j++;
   }
+  //std::cout << "Dn:\n" << DxE/(2.0*data->dx) << "\n";
   b = b - problem->dt*DxE/(2.0*data->dx);
 }
 
@@ -280,15 +302,35 @@ void Solver::calcDx(){
       four_gamma_plus = problem->calc_lambda4_half(sensor_node);
       four_gamma_minus = problem->calc_lambda4_half(sensor_node-1);
     }
+
+    if(i==0)
+    {
+      tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
+        - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+      tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
+        - four_gamma_minus * problem->boundaryDifferencing(i-1);
+    }
+    else if(i==data->highest_index)
+    {
+      tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
+        - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+      tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
+        - four_gamma_minus * problem->highOrderDifferencing(i-1);
+    }
+    else
+    {
     tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-            - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-    tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
-            - four_gamma_minus * problem->highOrderDifferencing(i-1);
+      - two_gamma_minus * problem->lowOrderDifferencing(i-1);
+
+    tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
+      - four_gamma_minus * problem->highOrderDifferencing(i-1);
+    }
     int ier = 3*i;
-    Dx(ier  ) =  1/data->dx * (tmp_l[i](0) - tmp_h[i](0));
-    Dx(ier+1) =  1/data->dx * (tmp_l[i](1) - tmp_h[i](1));
-    Dx(ier+2) =  1/data->dx * (tmp_l[i](2) - tmp_h[i](2));
+    Dx(ier  ) =  1.0/data->dx * (tmp_l[i](0) - tmp_h[i](0));
+    Dx(ier+1) =  1.0/data->dx * (tmp_l[i](1) - tmp_h[i](1));
+    Dx(ier+2) =  1.0/data->dx * (tmp_l[i](2) - tmp_h[i](2));
   }
+  //std::cout << "Dn:\n" << Dx << "\n";
   b = b + problem->dt * Dx;
 }
 

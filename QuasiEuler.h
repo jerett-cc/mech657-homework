@@ -29,11 +29,11 @@
  */
 class QuasiEuler{
   public:
-    double dt;
+    double dt,cfl;
     ProblemData *data;
     Eigen::MatrixXd sensor_contributions;
     QuasiEuler(ProblemData *Data, double cfl, double max_vel)
-      : data(Data)
+      : data(Data), cfl(cfl)
     {
       dt = cfl * data->dx / (max_vel + 300.);//FIXME: how to change this for adaptive time stepping?
       sensor_contributions = Eigen::MatrixXd::Zero(data->q.size(), 2);
@@ -45,6 +45,7 @@ class QuasiEuler{
     Eigen::Matrix3d calculateLocalFluxJacobian(const int idx);
     Eigen::Vector3d lowOrderDifferencing(const int idx);//todo
     Eigen::Vector3d highOrderDifferencing(const int idx);//todo
+    Eigen::Vector3d boundaryDifferencing(const int idx);
 };
 
 /**
@@ -54,7 +55,10 @@ class QuasiEuler{
  */
 void QuasiEuler::calculateSensorContributions(){
   double kappa2 = 0.5;
+  //kappa2 = 0.0;//FIXME
   double kappa4 = 0.02;
+  //kappa4 = 0.;
+  //kappa2 = 0.;
   assert(data->q.size()==sensor_contributions.rows());
   for (int i = 0; i < data->q.size(); ++i)
   {
@@ -164,6 +168,10 @@ Eigen::Vector3d QuasiEuler::lowOrderDifferencing(const int idx){
 
 Eigen::Vector3d QuasiEuler::highOrderDifferencing(const int idx){
   return (data->Q(idx+2) - 3* data->Q(idx+1) + 3*data->Q(idx) - data->Q(idx-1));
+}
+
+Eigen::Vector3d QuasiEuler::boundaryDifferencing(const int idx){
+  return (-data->Q(idx+1) + 2*data->Q(idx) - data->Q(idx-1));
 }
 
 #endif
