@@ -123,8 +123,8 @@ int main(){
 	double Right = 10.;
 	double gamma = 1.4;
 	double R = 287.;
-	int num_nodes = 10;
-	unsigned int max_num_iterations = 1;
+	int num_nodes = 90;
+	unsigned int max_num_iterations = 19;
 	double max_vel = 315.;
 
 	//problem 1 additional parameters

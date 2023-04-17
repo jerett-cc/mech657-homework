@@ -159,16 +159,13 @@ const Eigen::Vector3d& ProblemData::operator[](const int idx) const{
  * a constant extrapolation.
  */
 Eigen::Vector3d ProblemData::operator[](const int idx){
-  if (outOfBounds(idx))
+  if (idx<0)
   {
-    if (idx<0)
-    {
-      return boundary_Ql;
-    }
-    else
-    {
-      return boundary_Qr;
-    }
+    return boundary_Ql;
+  }
+  else if(idx>highest_index)
+  {
+    return boundary_Qr;
   }
   else
   {
@@ -233,7 +230,7 @@ Eigen::Vector3d ProblemData::E(const int idx){//todo need to verify this works
  * return double pressure at specified index
  */
 double ProblemData::Pressure(const int idx){
-  return (parameter.gamma -1.0) * (Energy(idx) - 1/(2.0 * Density(idx))
+  return (parameter.gamma -1.0) * (Energy(idx) - 1.0/(2.0 * Density(idx))
                                    * std::pow(Density(idx) * Velocity(idx), 2));
   //double inside = 1.0 + (parameter.gamma -1)/2.0 * std::pow(Mach(idx), 2);
   //double exponent = -(parameter.gamma/(parameter.gamma-1.0));
@@ -245,9 +242,27 @@ double ProblemData::Pressure(const int idx){
  * return double velocity at specified index
  */
 double ProblemData::Velocity(const int idx){
-  double q1 = Q(idx)(0);
-  double q2 = Q(idx)(1);
-  return q2/q1;
+  if (outOfBounds(idx))
+  {
+    if(idx <0)
+    {
+      double q1 = boundary_Ql(0);
+      double q2 = boundary_Ql(1);
+      return q2/q1;
+    }
+    else
+    {
+      double q1 = boundary_Qr(0);
+      double q2 = boundary_Qr(1);
+      return q2/q1;
+    }
+  }
+  else
+  {
+    double q1 = Q(idx)(0);
+    double q2 = Q(idx)(1);
+    return q2/q1;
+  }
 }
 
 /**
@@ -262,7 +277,21 @@ double ProblemData::Mach(const int idx){
  * return double density at specified index
  */
 double ProblemData::Density(const int idx){
-  return Q(idx)(0)/S(X(idx));
+  if(outOfBounds(idx))
+  {
+    if (idx <0)
+    {
+      return boundary_Ql(0)/S(Left);
+    }
+    else
+    {
+      return boundary_Qr(0)/S(Right);
+    }
+  }
+  else
+  {
+    return Q(idx)(0)/S(X(idx));
+  }
 }
 
 /**
@@ -307,8 +336,9 @@ double ProblemData::X(const int idx){
  *  needs pressure and density.
  */
 double ProblemData::soundSpeed(const int idx){
-  return std::sqrt(parameter.gamma * Pressure(idx)/ Density(idx));
-}
+ return std::sqrt(parameter.gamma * Pressure(idx)/ Density(idx));
+ //  return std::sqrt(parameter.gamma * parameter.R * Temperature(idx));
+ }
 
 /**
  * set initial conditions based on typical problem parameters
@@ -330,11 +360,11 @@ void ProblemData::setInitialCondition(const double gamma,
     machr = machr -nonlinearFunctionToSolveP1(machr, s_star, gamma, Right)/
        nonlinearFunctionToSolveP1Deriv(machr, s_star, gamma, Right);
   }
-  //std::cout << "Mach left is  " << machl << std::endl;
-  //std::cout << "Mach right is " << machr << std::endl;
+  std::cout << "Mach left is  " << machl << std::endl;
+  std::cout << "Mach right is " << machr << std::endl;
   std::cout << "____________Left________________" << std::endl;
   //calculate pressure and velocity on left of interval, and put into boundary Q_l
-  double insidel = 1 + (gamma-1)/(2)*std::pow(machl,2);
+  double insidel = 1.0 + (gamma-1.0)/(2.0)*std::pow(machl,2);
   double pressurel = inlet_pressure * std::pow(insidel, -gamma/(gamma-1));
   double temperaturel = total_temperature / insidel;
   double densityl = pressurel / (R* temperaturel);
@@ -367,7 +397,7 @@ void ProblemData::setInitialCondition(const double gamma,
 
   boundary_pressure = pressurer;
 
-#if 1
+#if 0
   densityl  = 1.140912020114519;
   pressurel = 97534.31315656686;
   velocityl = 65.45103620868267;
@@ -408,8 +438,11 @@ void ProblemData::setInitialCondition(const double gamma,
   boundary_Er(2) = velocityr * (energyr + pressurer) * S(Right);
 #endif
 
-#if 0
+#if 1
   std::cout << "______________Initializing problem 2 with constant value from BC____________" << std::endl;
+  std::cout << "left density: " << densityl
+            << "\nleft velocity: " << velocityl
+            << "\nleft pressure: " << pressurel << "\n";
   //FIXME hardcoded
   densityr = 1.027609;
   pressurer = 85112.525706;
@@ -438,22 +471,9 @@ void ProblemData::setInitialCondition(const double gamma,
 
   for(unsigned int i = 0; i<q.size(); i++)
   {
-    //if (X(i)<7)
-    //{
-    //  q[i](0) = densityl*S(X(i));
-    //  q[i](1) = densityl*velocityl*S(X(i));
-    //  q[i](2) = densityl*convert_pressure_to_energy(pressurel, densityl, velocityl, parameter.gamma)*S(X(i));
-    //}
-    //else
-    //{
-    //  q[i](0) = densityr*S(X(i));
-    //  q[i](1) = densityr*velocityr*S(X(i));
-    //  q[i](2) = densityr*convert_pressure_to_energy(pressurer, densityr, velocityr, parameter.gamma)*S(X(i));
-    //}
     q[i](0) = densityl*S(X(i));
     q[i](1) = densityl*velocityl*S(X(i));
     q[i](2) = densityl*convert_pressure_to_energy(pressurel, densityl, velocityl, parameter.gamma)*S(X(i));
-    //std::cout << q[i] << std::endl;
   }
 
 #endif

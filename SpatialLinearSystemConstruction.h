@@ -119,7 +119,7 @@ void Solver::setup_b(){
   calcDe();
   calcDx();
   calcSx();
-  std::cout <<"_________________" <<"B:\n" << b/problem->dt
+  std::cout <<"_________________" <<"B:\n" << std::setprecision(40) << b/problem->dt
     <<"\n_______________________________\n";
 }
 
@@ -129,8 +129,8 @@ void Solver::setup_A(){
   calculateAndAddSpatialMatrix();
   calculateAndAddL();
   calculateAndAddS();
-  std::cout << "______________________\n" << A/problem->dt
-    << "____________________\n";
+  std::cout << "______________________A:\n" << std::setprecision(40) << A/*/problem->dt*/
+    << "\n____________________\n";
 }
 
 /**
@@ -152,7 +152,7 @@ void Solver::calculateAndAddSpatialMatrix(){
     TOSHOW.block<3,3>(sub_index, sub_index+local_matrix_size) += 0.5/data->dx *Ai_n;
     TOSHOW.block<3,3>(sub_index + local_matrix_size, sub_index) += -0.5/data->dx*Ai;
   }
-  //std::cout << "dxA" << std::endl << TOSHOW << std::endl;
+  std::cout << "dxA" << std::endl << TOSHOW << std::endl;
   A =  A + problem->dt*TOSHOW;
 }
 
@@ -186,7 +186,7 @@ void Solver::calculateAndAddL(){
       {
         gamma[j] = problem->calc_lambda4_half(i);
       }
-      else if (i+1 >= data->q.size())
+      else if (i+1 > data->highest_index)
       {
         gamma[j] = problem->calc_lambda4_half(i-1);
       }
@@ -208,25 +208,22 @@ void Solver::calculateAndAddL(){
     std::vector<double> gamma(2);
     for (int j = 0; j < 2; ++j)
     {
-      std::vector<double> gamma(2);
-      for (int j = 0; j < 2; ++j)
+      if (i-1 <0)
       {
-        if (i-1 <0)
-        {
-          gamma[j] = problem->calc_lambda4_half(i);
-        }
-        else if (i+1 >= data->q.size())
-        {
-          gamma[j] = problem->calc_lambda4_half(i-1);
-        }
-        else
-        {
-          gamma[j] = problem->calc_lambda4_half(i-1+j);
-        }
+        gamma[j] = problem->calc_lambda2_half(i);
+      }
+      else if (i+1 >= data->q.size())
+      {
+        gamma[j] = problem->calc_lambda2_half(i-1);
+      }
+      else
+      {
+        gamma[j] = problem->calc_lambda2_half(i-1+j);
       }
     }
+
     stencil_low_order.block<3,3>(i*3, (i+1)*3) = gamma[0]*(identity);
-    stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[1] - gamma[0])*(identity);
+    stencil_low_order.block<3,3>(i*3, (i+2)*3) = -(gamma[1] + gamma[0])*(identity);
     stencil_low_order.block<3,3>(i*3, (i+3)*3) = gamma[1]*(identity);
   }
   //std::cout << "done" << std::endl;
@@ -237,7 +234,7 @@ void Solver::calculateAndAddL(){
   {
     result.col(i - 6) = stencil_high_order.col(i);
   }
-  // std::cout << "Matrix dissipation: \n" << 1.0/ data->dx * result << std::endl;
+  std::cout << "L: \n" << 1.0/ data->dx * result << std::endl;
   result = problem->dt / data->dx * result;
   //std::cout << "matrix dissipation from e4 and e2 contribution\n" << result  <<std::endl;
   A = A - result;
@@ -270,77 +267,6 @@ void Solver::calcDe(){
  *This function calculates the artificial dissipation for the RHS of the quasi Euler system and
  *adds it to member variable b.
  * */
-// void Solver::calcDx(){
-//   Eigen::VectorXd Dx = Eigen::VectorXd::Zero(data->getQVect().size());
-//   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
-//   std::vector<Eigen::Vector3d> tmp_l(data->q.size());
-//   //print the E vector
-//   std::cout << "En:\n";
-//   for(int i=0; i < data->q.size(); ++i)
-//   {
-//     std::cout << std::setprecision(16) << data->E(i) << "\n";
-//   }
-
-//   //
-//   for (int i = 0; i < data->q.size(); ++i)//loop through all nodes
-//   {
-//     double two_gamma_plus, two_gamma_minus, four_gamma_plus, four_gamma_minus;
-//     //special case for first node
-//     if (i-1 < 0)
-//     {
-//       two_gamma_plus  = problem->calc_lambda2_half(i);
-//       two_gamma_minus = two_gamma_plus;
-
-//       four_gamma_plus = problem->calc_lambda4_half(i);
-//       four_gamma_minus = four_gamma_plus;
-//     }
-//     else if(i+1 >= data->q.size())
-//     {
-//       two_gamma_minus = problem->calc_lambda2_half(i-1);
-//       two_gamma_plus = two_gamma_minus;
-
-//       four_gamma_minus = problem->calc_lambda4_half(i-1);
-//       four_gamma_plus = four_gamma_minus;
-//     }
-//     else
-//     {
-//       two_gamma_plus  = problem->calc_lambda2_half(i);
-//       two_gamma_minus = problem->calc_lambda2_half(i-1);
-
-//       four_gamma_plus = problem->calc_lambda4_half(i);
-//       four_gamma_minus = problem->calc_lambda4_half(i-1);
-//     }
-
-//     if(i==0)
-//     {
-//       tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-//         - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-//       tmp_h[i] = four_gamma_plus* problem->highOrderDifferencing(i)
-//         - four_gamma_minus * problem->boundaryDifferencing(i-1);
-//     }
-//     else if(i==data->highest_index)
-//     {
-//       tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-//         - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-//       tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
-//         - four_gamma_minus * problem->highOrderDifferencing(i-1);
-//     }
-//     else
-//     {
-//     tmp_l[i] = two_gamma_plus* problem->lowOrderDifferencing(i)
-//       - two_gamma_minus * problem->lowOrderDifferencing(i-1);
-
-//     tmp_h[i] = four_gamma_plus* problem->boundaryDifferencing(i)
-//       - four_gamma_minus * problem->highOrderDifferencing(i-1);
-//     }
-//     int ier = 3*i;
-//     Dx(ier  ) =  1.0/data->dx * (tmp_l[i](0) - tmp_h[i](0));
-//     Dx(ier+1) =  1.0/data->dx * (tmp_l[i](1) - tmp_h[i](1));
-//     Dx(ier+2) =  1.0/data->dx * (tmp_l[i](2) - tmp_h[i](2));
-//   }
-//   std::cout << "Dn:\n" << Dx << "\n";
-//   b = b + problem->dt * Dx;
-// }
 void Solver::calcDx(){
   Eigen::VectorXd Dx = Eigen::VectorXd::Zero(data->getQVect().size());
   std::vector<Eigen::Vector3d> tmp_h(data->q.size());
@@ -349,7 +275,7 @@ void Solver::calcDx(){
   std::cout << "En:\n";
   for(int i=0; i < data->q.size(); ++i)
   {
-    std::cout << std::setprecision(16) << data->E(i) << "\n";
+    std::cout << std::setprecision(40) << data->E(i) << "\n";
   }
 
   for (int i = 1; i < data->q.size()-1; ++i)//loop through all nodes
@@ -359,9 +285,6 @@ void Solver::calcDx(){
       - problem->calc_lambda2_half(i-1) * problem->lowOrderDifferencing(i-1);
     tmp_h[i] = problem->calc_lambda4_half(i) * problem->highOrderDifferencing(i)
       - problem->calc_lambda4_half(i-1) * problem->highOrderDifferencing(i-1);
-
-
-
   }
   int i=0;
   tmp_l[i] = problem->calc_lambda2_half(i) * problem->lowOrderDifferencing(i)
@@ -417,6 +340,7 @@ void Solver::calculateAndAddS(){
     local_S_matrix(1,2) = (data->parameter.gamma-1.0);
     Sjac.block<3,3>(ier, ier) += local_S_matrix * data->Sprime(data->X(i));
   }
+  std::cout << "\nS: \n" << Sjac << "\n";
   A = A - problem->dt*Sjac;
 }
 
